@@ -32,8 +32,9 @@ the user only what the code cannot tell you.
 
 Call `estimate_cost` for any video, any batch (`n > 1`), 4K images and long
 speech, and tell the user the figure and its `confidence`. Ask before spending
-more than about $2 unless the user already agreed to a budget. Never loop
-regenerations without telling them: each attempt costs money.
+more than about $2 unless the user already agreed to a budget. When they gave a
+budget, pass it as `max_cost_usd`: the tool then refuses anything over it before
+spending. Never loop regenerations without telling them: each attempt costs money.
 
 ## 4. Generate
 
