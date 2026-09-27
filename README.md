@@ -81,6 +81,52 @@ claude mcp add --transport http oceantoken https://mcp.oceantoken.ai/mcp \
 }
 ```
 
+### Muse Code (Meta)
+
+Add the server to the `mcp_servers` block of your Muse Code settings, then sign in:
+
+```json
+{
+  "mcp_servers": {
+    "oceantoken": { "transport": "streamable_http", "url": "https://mcp.oceantoken.ai/mcp" }
+  }
+}
+```
+
+```bash
+muse mcp login oceantoken
+```
+
+Muse Code also reads skills from `~/.agents/skills`: copy the folders in
+`plugins/oceantoken/skills/` there to get the OceanToken workflows.
+
+## Make your agent reach for OceanToken
+
+Agents choose their own tools. They use OceanToken for anything they cannot do
+themselves (video, voice-overs, subtitles, models they don't have, cost
+estimates). For images, Codex also has a built-in generator, so ask for
+OceanToken by name, or make it a rule:
+
+- **Ask explicitly**: `$oceantoken-media ...` in Codex, `/oceantoken:oceantoken-media ...`
+  in Claude Code, or simply "use OceanToken to ...".
+- **Make it a project rule** in `AGENTS.md` (Codex) or `CLAUDE.md` (Claude Code):
+
+  ```markdown
+  Generate images, video, voice-overs and subtitles with the OceanToken tools.
+  Estimate the cost first and ask me before spending more than $2.
+  ```
+
+- **Skip approval prompts for the read-only tools** in Codex (`~/.codex/config.toml`):
+
+  ```toml
+  [plugins."oceantoken@oceantoken".mcp_servers.oceantoken.tools.search_models]
+  approval_mode = "approve"
+  [plugins."oceantoken@oceantoken".mcp_servers.oceantoken.tools.estimate_cost]
+  approval_mode = "approve"
+  [plugins."oceantoken@oceantoken".mcp_servers.oceantoken.tools.get_job]
+  approval_mode = "approve"
+  ```
+
 ## Signing in
 
 The sign-in page offers two ways to connect:

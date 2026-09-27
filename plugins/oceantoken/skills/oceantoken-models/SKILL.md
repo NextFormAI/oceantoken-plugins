@@ -1,6 +1,6 @@
 ---
 name: oceantoken-models
-description: Choose, compare and price AI models on OceanToken, and hand sub-tasks to other models through it. Use when the user asks which model to use, wants prices, a cheaper alternative or a cost estimate, asks for a second opinion from another model family (GPT, Claude, Gemini, DeepSeek, Qwen, Llama...), or has bulk text work (summaries, translation, classification, test data, docs) that a cheaper model can do.
+description: Choose, compare and price AI models on OceanToken, and hand sub-tasks to other models through it. Use when the user asks which model to use, wants prices, a cheaper alternative or a cost estimate, asks for a second opinion from another model family (GPT, Claude, Gemini, DeepSeek, Qwen, Llama...), or has bulk text work (summaries, translation, classification, test data, docs) that a cheaper model can do. Also for Chinese requests such as 选模型、比价、哪个模型便宜、估算费用、要花多少钱、换个模型、第二意见、交给便宜的模型.
 ---
 
 # Choosing, pricing and delegating with OceanToken

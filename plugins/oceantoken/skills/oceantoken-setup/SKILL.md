@@ -1,6 +1,6 @@
 ---
 name: oceantoken-setup
-description: Configure OceanToken as the model provider for Codex or Claude Code (run the agent itself on OceanToken models and balance), or connect an application's code to the OceanToken API. Use when the user asks to switch Codex or Claude Code to OceanToken, to call OceanToken models from their own app, to set up OCEANTOKEN_API_KEY, or to fix 401 / 403 / budget errors from the OceanToken API.
+description: Configure OceanToken as the model provider for Codex or Claude Code (run the agent itself on OceanToken models and balance), or connect an application's code to the OceanToken API. Use when the user asks to switch Codex or Claude Code to OceanToken, to call OceanToken models from their own app, to set up OCEANTOKEN_API_KEY, or to fix 401 / 403 / budget errors from the OceanToken API. Also for Chinese requests such as 把 Codex／Claude Code 换成 OceanToken、配置 API key、401、403、余额不足.
 ---
 
 # Setting up OceanToken as a provider

@@ -1,12 +1,16 @@
 ---
 name: oceantoken-media
-description: Create images, video, voice-overs and subtitles with OceanToken models and save them into the project. Use when the user wants a generated or edited image (hero, illustration, icon, product shot, background, a change to an existing picture), a video clip (from text, or animating an image), narration / text-to-speech, or a transcript or subtitles, and the OceanToken tools are connected.
+description: Create images, video, voice-overs and subtitles with OceanToken models and save them into the project. Use when the user wants a generated or edited image (hero, illustration, icon, product shot, background, a change to an existing picture), a video clip (from text, or animating an image), narration / text-to-speech, or a transcript or subtitles, and the OceanToken tools are connected. Also for Chinese requests such as 生成图片、做图、改图、海报、生成视频、图生视频、配音、语音合成、朗读、字幕、转写.
 ---
 
 # Images, video and audio with OceanToken
 
 Every generation spends the user's OceanToken balance. Work like a producer on a
 budget: settle the brief, price it, generate once well, save the result, report.
+
+If the host also has a built-in image tool, use OceanToken when the user asks
+for OceanToken or a specific model, wants several options or a batch, needs
+video, audio or subtitles, or wants the cost up front.
 
 ## 1. Settle the brief
 
