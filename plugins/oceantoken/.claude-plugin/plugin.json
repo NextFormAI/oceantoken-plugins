@@ -1,7 +1,7 @@
 {
   "name": "oceantoken",
   "displayName": "OceanToken",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "One OceanToken account for 500+ AI models. Search models and prices, estimate costs, and generate images, video, speech and text from Claude Code.",
   "author": {
     "name": "NextForm LLC",
@@ -10,5 +10,14 @@
   "homepage": "https://oceantoken.ai",
   "repository": "https://github.com/NextFormAI/oceantoken-plugins",
   "license": "MIT",
-  "keywords": ["oceantoken", "models", "image generation", "video generation", "text to speech", "transcription", "llm", "mcp"]
+  "keywords": [
+    "oceantoken",
+    "models",
+    "image generation",
+    "video generation",
+    "text to speech",
+    "transcription",
+    "llm",
+    "mcp"
+  ]
 }

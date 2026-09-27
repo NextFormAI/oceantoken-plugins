@@ -1,4 +1,9 @@
-<p align="center"><img src="plugins/oceantoken/assets/logo.png" width="96" alt="OceanToken"></p>
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/oceantoken-horizontal-white.svg">
+    <img src="assets/oceantoken-horizontal-black.svg" alt="OceanToken" height="56">
+  </picture>
+</p>
 
 # OceanToken plugins for Codex and Claude Code
 
