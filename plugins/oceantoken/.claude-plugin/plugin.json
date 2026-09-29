@@ -1,7 +1,7 @@
 {
   "name": "oceantoken",
   "displayName": "OceanToken",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "One OceanToken account for 500+ AI models. Search models and prices, estimate costs, and generate images, video, speech and text from Claude Code.",
   "author": {
     "name": "NextForm LLC",

@@ -75,8 +75,8 @@ poll `get_job` the same way.
 
 ## Errors
 
-- Balance too low: tool says so with a top-up link; `get_account` shows the
-  balance. Offer a cheaper model as the alternative.
+- Balance too low: the tool says so; `get_account` shows the balance. The user
+  adds credit in the OceanToken console. Offer a cheaper model as the alternative.
 - Parameter rejected: re-read `get_model` and use a listed value.
 - Failed video jobs are not charged; the hold is released automatically.
 - Reconnect prompt: the user's OceanToken sign-in or key was revoked; they need

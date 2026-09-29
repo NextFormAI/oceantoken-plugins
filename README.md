@@ -26,7 +26,7 @@ it into your project.
 | `transcribe_audio` | Transcripts and SRT/VTT subtitles. |
 | `ask_model` | Hand a sub-task to another model: a cheaper one, or a second opinion. |
 | `upload_file` | Use local files as references. |
-| `get_account` | Balance and a top-up link. |
+| `get_account` | Balance, available balance and spend. |
 
 Three skills teach the agent how to use them well:
 

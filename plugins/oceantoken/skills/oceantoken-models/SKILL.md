@@ -45,6 +45,6 @@ model and returns its answer, usage and cost.
 
 ## Balance
 
-`get_account` shows balance, available balance (minus holds for running video
-jobs) and a top-up link. If a request is refused for balance, tell the user,
-give the link, and offer a cheaper model.
+`get_account` shows balance and available balance (minus holds for running
+video jobs). If a request is refused for balance, tell the user that credit is
+added in the OceanToken console, and offer a cheaper model.

@@ -84,7 +84,7 @@ with a Claude model id. Read the key from the environment; never hard-code it.
 |---|---|---|
 | 401 | Missing, wrong, expired or deleted key | Check the header; create a new key |
 | 403 | Key not allowed that model | Use a model from `GET /v1/models` |
-| 400 "budget exceeded" | Balance or the key's credit limit reached | Top up at https://app.oceantoken.ai/ui/?page=billing or raise the key limit |
+| 400 "budget exceeded" | Balance or the key's credit limit reached | Add credit in the OceanToken console or raise the key limit |
 | 404 | Unknown model | Check the id with `search_models` |
 | 429 | Rate limited | Back off and retry |
 | 5xx | Provider failure (not charged) | Retry once, then switch model |
