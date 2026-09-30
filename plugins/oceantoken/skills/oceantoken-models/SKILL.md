@@ -1,9 +1,26 @@
 ---
 name: oceantoken-models
 description: Choose, compare and price AI models on OceanToken, and hand sub-tasks to other models through it. Use when the user asks which model to use, wants prices, a cheaper alternative or a cost estimate, asks for a second opinion from another model family (GPT, Claude, Gemini, DeepSeek, Qwen, Llama...), or has bulk text work (summaries, translation, classification, test data, docs) that a cheaper model can do. Also for Chinese requests such as 选模型、比价、哪个模型便宜、估算费用、要花多少钱、换个模型、第二意见、交给便宜的模型.
+metadata:
+  openclaw:
+    homepage: https://oceantoken.ai
 ---
 
 # Choosing, pricing and delegating with OceanToken
+
+## Connect first
+
+These steps use the OceanToken MCP tools (`search_models`, `estimate_cost`,
+`generate_image`, ...). If they are not available, the server is not connected
+yet. It is `https://mcp.oceantoken.ai/mcp` (streamable HTTP) with an OAuth
+sign-in. In OpenClaw:
+
+```bash
+openclaw mcp set oceantoken '{"url":"https://mcp.oceantoken.ai/mcp","transport":"streamable-http","auth":"oauth"}'
+openclaw mcp login oceantoken
+```
+
+For other hosts see https://github.com/NextFormAI/oceantoken-plugins#install.
 
 ## Find and compare
 

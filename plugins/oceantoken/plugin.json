@@ -1,10 +1,11 @@
 {
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "oceantoken",
-  "displayName": "OceanToken",
   "version": "0.2.0",
-  "description": "One OceanToken account for 500+ AI models. Search models and prices, estimate costs, and generate images, video, speech and text from Claude Code.",
+  "description": "One OceanToken account for 500+ AI models. Search models and prices, estimate costs, and generate images, video, speech and text from your coding agent.",
   "author": {
     "name": "NextForm LLC",
+    "email": "support@oceantoken.ai",
     "url": "https://oceantoken.ai"
   },
   "homepage": "https://oceantoken.ai",

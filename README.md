@@ -5,12 +5,12 @@
   </picture>
 </p>
 
-# OceanToken plugins for Codex and Claude Code
+# OceanToken plugins for coding agents
 
 [OceanToken](https://oceantoken.ai) is one account for 500+ AI models: GPT, Claude, Gemini,
 DeepSeek and Qwen for text; GPT Image, Seedream, Recraft and Gemini for images; Seedance, Veo,
 Sora and Wan for video; plus text-to-speech and transcription. This plugin brings all of it into
-your coding agent. Your agent can find a model, check what it costs, generate the asset, and save
+your coding agent: Codex, Claude Code, Cursor, Gemini CLI, OpenClaw, VS Code and any other MCP client. Your agent can find a model, check what it costs, generate the asset, and save
 it into your project.
 
 ## What your agent gets
@@ -34,6 +34,10 @@ Three skills teach the agent how to use them well:
 - `oceantoken-models`: choose, price and delegate.
 - `oceantoken-setup`: run Codex or Claude Code itself on OceanToken, or wire up your app.
 
+The same plugin folder carries manifests for each host (`.codex-plugin`, `.claude-plugin`,
+`.cursor-plugin`, and the open [Agent Plugins](https://agent-plugins.org) `plugin.json`), so
+every host gets the same tools and skills.
+
 ## Install
 
 You need an OceanToken account ([sign up](https://app.oceantoken.ai/ui/signup/)) with some credit.
@@ -56,6 +60,35 @@ panel and sign in when asked.
 /plugin install oceantoken@oceantoken
 /mcp                             # pick "plugin:oceantoken:oceantoken" and authenticate
 ```
+
+### Cursor
+
+[![Add OceanToken to Cursor](https://cursor.com/deeplink/mcp-install-dark.svg)](https://cursor.com/install-mcp?name=oceantoken&config=eyJ1cmwiOiJodHRwczovL21jcC5vY2VhbnRva2VuLmFpL21jcCJ9)
+
+The button adds the MCP server; Cursor asks you to sign in the first time a tool runs. To get the
+skills as well, install the plugin from this repository (it has a `.cursor-plugin` marketplace
+manifest).
+
+### Gemini CLI
+
+```bash
+gemini extensions install https://github.com/NextFormAI/oceantoken-plugins
+```
+
+Then, inside Gemini CLI, run `/mcp auth oceantoken` and sign in. The extension brings the MCP
+server, the three skills and a short `GEMINI.md`.
+
+### OpenClaw
+
+```bash
+openclaw plugins install oceantoken --marketplace NextFormAI/oceantoken-plugins --force --accept-capabilities
+openclaw mcp set oceantoken '{"url":"https://mcp.oceantoken.ai/mcp","transport":"streamable-http","auth":"oauth"}'
+openclaw mcp login oceantoken
+```
+
+OpenClaw asks for `--force` for plugins installed from outside ClawHub. The plugin brings the
+three skills. The `mcp set` entry registers the server with OpenClaw so `mcp login` can sign you
+in; it replaces the plugin's own unauthenticated entry of the same name.
 
 ### Any other MCP client
 
