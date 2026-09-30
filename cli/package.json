@@ -1,0 +1,48 @@
+{
+  "name": "@oceantoken/cli",
+  "version": "0.1.0",
+  "description": "Connect Codex, Claude Code, Cursor, Gemini CLI, OpenClaw, OpenCode, VS Code and other AI agents to OceanToken in one command.",
+  "type": "module",
+  "bin": {
+    "oceantoken": "bin/oceantoken.js"
+  },
+  "files": [
+    "bin",
+    "src",
+    "skills",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=18.17"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.js",
+    "prepack": "node scripts/sync-skills.mjs"
+  },
+  "homepage": "https://oceantoken.ai",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/NextFormAI/oceantoken-plugins.git",
+    "directory": "cli"
+  },
+  "bugs": "https://github.com/NextFormAI/oceantoken-plugins/issues",
+  "license": "MIT",
+  "author": "NextForm LLC",
+  "keywords": [
+    "oceantoken",
+    "mcp",
+    "codex",
+    "claude-code",
+    "cursor",
+    "gemini-cli",
+    "openclaw",
+    "opencode",
+    "ai-agents",
+    "image-generation",
+    "video-generation"
+  ],
+  "publishConfig": {
+    "access": "public"
+  }
+}

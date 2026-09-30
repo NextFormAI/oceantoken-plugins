@@ -42,6 +42,23 @@ every host gets the same tools and skills.
 
 You need an OceanToken account ([sign up](https://app.oceantoken.ai/ui/signup/)) with some credit.
 
+### One command, any agent
+
+Ask your agent:
+
+> Install OceanToken for me by following https://raw.githubusercontent.com/NextFormAI/oceantoken-plugins/main/INSTALL.md
+
+or run it yourself:
+
+```bash
+npx -y @oceantoken/cli@latest connect <client>
+```
+
+`<client>` is one of `codex`, `claude-code`, `cursor`, `gemini`, `openclaw`, `opencode`, `vscode`,
+`workbuddy`, `hermes` or `windsurf`. It installs the plugin or MCP entry and the skills, and starts
+the sign-in. See [cli/](cli/) for options (API keys, dry run, disconnect). The sections below do
+the same by hand.
+
 ### Codex
 
 ```bash

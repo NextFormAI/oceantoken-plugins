@@ -1,0 +1,87 @@
+import assert from "node:assert/strict";
+import fs from "node:fs";
+import path from "node:path";
+import { test } from "node:test";
+import { codexBlock, removeBlock, upsertCodexBlock, upsertHermesServer } from "../src/lib/blocks.js";
+import { removeJsonEntry, stripJsonc, upsertJsonEntry } from "../src/lib/json-config.js";
+import { installSkills, removeSkills } from "../src/lib/skills.js";
+import { exists, read, readJson, tempHome } from "./helpers.js";
+
+const URL = "https://mcp.oceantoken.ai/mcp";
+
+test("a JSON config is created, extended, left unchanged and cleaned up", () => {
+  const file = path.join(tempHome(), "cfg", "mcp.json");
+  assert.equal(upsertJsonEntry(file, ["mcpServers", "oceantoken"], { url: URL }).status, "created");
+  fs.writeFileSync(file, JSON.stringify({ theme: "dark", mcpServers: { other: { url: "x" } } }));
+  assert.equal(upsertJsonEntry(file, ["mcpServers", "oceantoken"], { url: URL }).status, "added");
+  assert.deepEqual(readJson(file), { theme: "dark", mcpServers: { other: { url: "x" }, oceantoken: { url: URL } } });
+  assert.equal(upsertJsonEntry(file, ["mcpServers", "oceantoken"], { url: URL }).status, "unchanged");
+  assert.ok(exists(`${file}.bak-oceantoken`), "an existing file is backed up before it is rewritten");
+  assert.equal(removeJsonEntry(file, ["mcpServers", "oceantoken"]).status, "removed");
+  assert.deepEqual(readJson(file), { theme: "dark", mcpServers: { other: { url: "x" } } });
+  assert.equal(removeJsonEntry(file, ["mcpServers", "oceantoken"]).status, "absent");
+});
+
+test("a JSON config with comments is never rewritten", () => {
+  const file = path.join(tempHome(), "opencode.jsonc");
+  const text = '{\n  // my settings\n  "theme": "dark",\n}\n';
+  fs.writeFileSync(file, text);
+  const res = upsertJsonEntry(file, ["mcp", "oceantoken"], { type: "remote", url: URL });
+  assert.equal(res.status, "manual");
+  assert.match(res.snippet, /"oceantoken"/);
+  assert.equal(read(file), text);
+  assert.equal(stripJsonc('{"a": "http://x", // c\n "b": [1,],}'), '{"a": "http://x", \n "b": [1]}');
+});
+
+test("a key file is created owner-only", { skip: process.platform === "win32" }, () => {
+  const file = path.join(tempHome(), "mcp.json");
+  upsertJsonEntry(file, ["mcpServers", "oceantoken"], { url: URL, headers: { Authorization: "Bearer k" } }, { secret: true });
+  assert.equal(fs.statSync(file).mode & 0o777, 0o600);
+});
+
+test("the Codex block is appended, replaced and removed, and a hand-written table is left alone", () => {
+  const first = upsertCodexBlock('model = "gpt-5.5"\n', codexBlock(URL));
+  assert.equal(first.status, "added");
+  assert.match(first.text, /^model = "gpt-5.5"\n\n# OceanToken MCP server/m);
+  const withKey = upsertCodexBlock(first.text, codexBlock(URL, { Authorization: "Bearer k" }));
+  assert.equal(withKey.status, "updated");
+  assert.match(withKey.text, /http_headers = \{ "Authorization" = "Bearer k" \}/);
+  assert.equal(withKey.text.match(/\[mcp_servers\.oceantoken\]/g).length, 1);
+  const removed = removeBlock(withKey.text);
+  assert.equal(removed.status, "removed");
+  assert.equal(removed.text.trim(), 'model = "gpt-5.5"');
+  const hand = '[mcp_servers.oceantoken]\nurl = "https://example"\n';
+  assert.equal(upsertCodexBlock(hand, codexBlock(URL)).status, "manual");
+});
+
+test("the Hermes server goes under mcp_servers at the file's own indent", () => {
+  const fresh = upsertHermesServer(null, URL);
+  assert.equal(fresh.status, "created");
+  assert.equal(fresh.text, `mcp_servers:\n  # OceanToken MCP server (added by @oceantoken/cli)\n  oceantoken:\n    url: "${URL}"\n    auth: oauth\n  # end OceanToken\n`);
+
+  const existing = "model: x\nmcp_servers:\n    github:\n        url: https://gh\nskills: []\n";
+  const added = upsertHermesServer(existing, URL);
+  assert.equal(added.status, "added");
+  assert.match(added.text, /^mcp_servers:\n {4}# OceanToken[^\n]*\n {4}oceantoken:\n {8}url: /m);
+  assert.match(added.text, /github:\n {8}url: https:\/\/gh\nskills: \[\]/);
+  assert.equal(upsertHermesServer(added.text, URL).status, "unchanged");
+  assert.equal(removeBlock(added.text).text, existing);
+
+  assert.equal(upsertHermesServer("mcp_servers:\n  oceantoken:\n    url: x\n", URL).status, "manual");
+  assert.equal(upsertHermesServer("mcp_servers: {}\n", URL).status, "manual");
+  assert.equal(upsertHermesServer("mcp_servers:\n\tgithub: {}\n", URL).status, "manual");
+  assert.equal(upsertHermesServer("a: 1\n", URL).text, `a: 1\n\n${fresh.text}`);
+});
+
+test("skills are installed with an owner mark, and only owned folders are replaced or removed", () => {
+  const dir = path.join(tempHome(), "skills");
+  fs.mkdirSync(path.join(dir, "oceantoken-setup"), { recursive: true });
+  fs.writeFileSync(path.join(dir, "oceantoken-setup", "SKILL.md"), "mine");
+  const res = installSkills(dir);
+  assert.deepEqual(res.installed, ["oceantoken-media", "oceantoken-models"]);
+  assert.deepEqual(res.skipped, ["oceantoken-setup"]);
+  assert.match(read(path.join(dir, "oceantoken-media", "SKILL.md")), /^---\nname: oceantoken-media/);
+  assert.ok(!exists(path.join(dir, "oceantoken-media", "agents")), "Codex-only metadata is not copied");
+  assert.deepEqual(removeSkills(dir).removed, ["oceantoken-media", "oceantoken-models"]);
+  assert.equal(read(path.join(dir, "oceantoken-setup", "SKILL.md")), "mine");
+});
