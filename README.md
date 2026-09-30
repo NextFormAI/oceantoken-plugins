@@ -81,16 +81,21 @@ server, the three skills and a short `GEMINI.md`.
 ### OpenClaw
 
 ```bash
-openclaw plugins install oceantoken --marketplace NextFormAI/oceantoken-plugins --force --accept-capabilities
+openclaw plugins install clawhub:@oceantoken/oceantoken --accept-capabilities
 openclaw mcp set oceantoken '{"url":"https://mcp.oceantoken.ai/mcp","transport":"streamable-http","auth":"oauth"}'
 openclaw mcp login oceantoken
 ```
 
-OpenClaw asks for `--force` for plugins installed from outside ClawHub. The plugin brings the
-three skills. The `mcp set` entry registers the server with OpenClaw so `mcp login` can sign you
-in; it replaces the plugin's own unauthenticated entry of the same name.
+The [ClawHub package](https://clawhub.ai/oceantoken/plugins/oceantoken) brings the three skills
+(also on ClawHub on their own: `oceantoken-media`, `oceantoken-models`, `oceantoken-setup`). The
+`mcp set` entry registers the server with OpenClaw so `mcp login` can sign you in; it replaces the
+plugin's own unauthenticated entry of the same name.
 
 ### Any other MCP client
+
+OceanToken is in the [official MCP Registry](https://registry.modelcontextprotocol.io) as
+`ai.oceantoken/mcp`, so clients that browse the registry (VS Code and GitHub Copilot, for
+example) can find it by name.
 
 The server is `https://mcp.oceantoken.ai/mcp` (streamable HTTP). It supports OAuth with dynamic
 client registration, so most clients just need the URL. To use an API key instead, send it as a
