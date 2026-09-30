@@ -85,7 +85,8 @@ poll `get_job` the same way.
 ## 5. Save, check, report
 
 - Download at once; links expire in about 24 hours:
-  `curl -L -o public/hero.png "<url>"`. Use the path and name the code expects.
+  `curl -L -o public/hero.png "<url>"`. Use the path and name the code expects,
+  and ask before overwriting an existing file.
 - Look at the preview (image tools return one) before wiring the file in. If it
   is off, change the prompt specifically ("camera lower, warmer light") rather
   than re-rolling blindly.

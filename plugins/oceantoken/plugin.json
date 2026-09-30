@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "oceantoken",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "One OceanToken account for 500+ AI models. Search models and prices, estimate costs, and generate images, video, speech and text from your coding agent.",
   "author": {
     "name": "NextForm LLC",

@@ -17,6 +17,10 @@ OceanToken's API is OpenAI-compatible at `https://api.oceantoken.ai/v1`
 models also answer the Anthropic Messages API at `https://api.oceantoken.ai`.
 Auth is `Authorization: Bearer sk-...`.
 
+Only change configuration when the user asked for this setup. Before writing
+any file (agent config, settings, `.env`), show the exact change and get a
+yes; never write a key anywhere without that confirmation.
+
 ## The key
 
 1. The user creates a key at https://app.oceantoken.ai/ui/?page=api-keys (a

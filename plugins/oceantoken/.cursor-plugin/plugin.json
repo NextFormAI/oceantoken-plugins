@@ -1,7 +1,7 @@
 {
   "name": "oceantoken",
   "displayName": "OceanToken",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Search 500+ models and their prices, estimate costs, and generate images, video, speech and text with one account.",
   "author": {
     "name": "NextForm LLC",
