@@ -55,6 +55,6 @@ Only what OceanToken needs, and it is safe to run again:
 ## For agents
 
 An agent installing OceanToken for a user should follow
-[INSTALL.md](https://github.com/NextFormAI/oceantoken-plugins/blob/main/INSTALL.md).
+[INSTALL.md](https://mcp.oceantoken.ai/install).
 
 MIT licensed. OceanToken is a product of NextForm LLC.

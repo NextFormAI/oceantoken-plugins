@@ -46,7 +46,7 @@ You need an OceanToken account ([sign up](https://app.oceantoken.ai/ui/signup/))
 
 Ask your agent:
 
-> Install OceanToken for me by following https://raw.githubusercontent.com/NextFormAI/oceantoken-plugins/main/INSTALL.md
+> Install OceanToken for me by following https://mcp.oceantoken.ai/install
 
 or run it yourself:
 
