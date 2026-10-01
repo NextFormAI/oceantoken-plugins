@@ -84,14 +84,14 @@ export function createContext({
      * Run a host CLI command as one step. `inherit` hands the terminal to the child
      * (sign-in prints a URL and waits for the browser). In a dry run nothing runs.
      */
-    async exec(name, cmd, args, { inherit = false, allowFail = false, okWhen } = {}) {
+    async exec(name, cmd, args, { inherit = false, tty = false, allowFail = false, okWhen } = {}) {
       const shown = `${cmd} ${args.map((a) => (/\s|["{]/.test(a) ? `'${a}'` : a)).join(" ")}`;
       if (dryRun) {
         ctx.step(name, "skipped", `would run: ${shown}`);
         return { ok: true, code: 0, stdout: "", stderr: "" };
       }
       if (inherit) say(`  ${MARKS.pending} ${name.padEnd(22)} ${shown}`);
-      const res = await runner(cmd, args, { inherit, env });
+      const res = await runner(cmd, args, { inherit, tty, env });
       const output = `${res.stdout}\n${res.stderr}`;
       const ok = res.code === 0 || (okWhen ? okWhen(output) : false);
       if (ok) ctx.step(name, "ok", inherit ? "done" : shown);
@@ -121,6 +121,12 @@ export function createContext({
         return;
       }
       ctx.step(name, res.status === "removed" ? "ok" : "skipped", `${file} (${res.status})`);
+    },
+
+    /** Run a host command only to read its output: no step, nothing in a dry run. */
+    async query(cmd, args) {
+      if (dryRun) return { code: 0, stdout: "", stderr: "" };
+      return runner(cmd, args, { env });
     },
 
     /** Apply a text edit (TOML/YAML block) to a file. */

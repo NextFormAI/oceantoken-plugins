@@ -13,7 +13,7 @@ to the client, then starts the client's own OAuth sign-in where it has one.
 | Client | `<client>` | How it is set up | Sign-in |
 |---|---|---|---|
 | Codex | `codex` | Codex plugin from this repo's marketplace | `codex mcp login` (browser) |
-| Claude Code | `claude-code` | Claude Code plugin from this repo's marketplace | `/mcp` in Claude Code |
+| Claude Code (terminal, IDE extension, desktop app) | `claude-code` | Claude Code plugin from this repo's marketplace | `claude mcp login` (browser) |
 | Cursor | `cursor` | `~/.cursor/mcp.json` + `~/.cursor/skills` | Cursor Settings → Tools & MCP |
 | Gemini CLI | `gemini` | Gemini CLI extension | `/mcp auth oceantoken` |
 | OpenClaw | `openclaw` | ClawHub package + OpenClaw-managed server | `openclaw mcp login` (browser) |

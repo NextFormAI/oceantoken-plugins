@@ -5,7 +5,7 @@ import { test } from "node:test";
 import { KEY, cli, exists, read, readJson, tempHome } from "./helpers.js";
 
 const URL = "https://mcp.oceantoken.ai/mcp";
-const cmdline = (c) => [c.cmd, ...c.args].join(" ");
+const cmdline = (c) => [path.basename(c.cmd), ...c.args].join(" ");
 
 test("cursor: server entry and skills are written, a rerun changes nothing, disconnect removes both", async () => {
   const home = tempHome();
@@ -111,11 +111,15 @@ test("a failing host command fails the connect and shows its output", async () =
   assert.ok(!res.calls.some((c) => c.args.includes("login")), "no sign-in after a failed install");
 });
 
-test("claude-code: plugin install is idempotent and sign-in is done in /mcp", async () => {
+test("claude-code: idempotent plugin install, then claude mcp login with a terminal", async () => {
   const res = await cli(["connect", "claude-code"], {
     bins: ["claude"],
     respond: (cmd, args) =>
-      args[1] === "install" ? { code: 1, stdout: 'Plugin "oceantoken@oceantoken" is already installed', stderr: "" } : { code: 0, stdout: "", stderr: "" },
+      args[1] === "install"
+        ? { code: 1, stdout: 'Plugin "oceantoken@oceantoken" is already installed', stderr: "" }
+        : args.join(" ") === "mcp list"
+          ? { code: 0, stdout: "plugin:oceantoken:oceantoken: https://mcp.oceantoken.ai/mcp (HTTP) - ! Needs authentication\n", stderr: "" }
+          : { code: 0, stdout: "", stderr: "" },
   });
   assert.equal(res.code, 0, res.out);
   assert.deepEqual(res.calls.map(cmdline), [
@@ -123,8 +127,67 @@ test("claude-code: plugin install is idempotent and sign-in is done in /mcp", as
     "claude plugin marketplace update oceantoken",
     "claude plugin install oceantoken@oceantoken",
     "claude plugin update oceantoken@oceantoken",
+    "claude mcp list",
+    "claude mcp login plugin:oceantoken:oceantoken",
   ]);
-  assert.match(res.out, /run \/mcp, choose plugin:oceantoken:oceantoken/);
+  const login = res.calls.at(-1);
+  assert.equal(login.inherit, true);
+  assert.equal(login.tty, true, "claude mcp login refuses to run without a terminal");
+  assert.match(res.out, /Sign-in {3}done/);
+});
+
+test("claude-code: an already connected plugin server is not signed in again", async () => {
+  const res = await cli(["connect", "claude-code"], {
+    bins: ["claude"],
+    respond: (cmd, args) =>
+      args.join(" ") === "mcp list"
+        ? { code: 0, stdout: "plugin:oceantoken:oceantoken: https://mcp.oceantoken.ai/mcp (HTTP) - ✓ Connected\n", stderr: "" }
+        : { code: 0, stdout: "", stderr: "" },
+  });
+  assert.ok(!res.calls.some((c) => c.args.includes("login")));
+  assert.match(res.out, /already signed in/);
+});
+
+test("claude-code: a claude.ai OceanToken connector is reported as a duplicate", async () => {
+  const res = await cli(["connect", "claude-code", "--no-login"], {
+    bins: ["claude"],
+    respond: (cmd, args) =>
+      args.join(" ") === "mcp list"
+        ? { code: 0, stdout: "claude.ai OceanToken: https://mcp.oceantoken.ai/mcp (HTTP) - ! Needs authentication\n", stderr: "" }
+        : { code: 0, stdout: "", stderr: "" },
+  });
+  assert.match(res.out, /claude\.ai OceanToken\), so the tools appear twice/);
+});
+
+test("claude-code: without claude on PATH, the newest desktop-app or IDE-extension copy is used", async () => {
+  const home = tempHome();
+  const exe = process.platform === "win32" ? "claude.exe" : "claude";
+  const touch = (file) => {
+    fs.mkdirSync(path.dirname(file), { recursive: true });
+    fs.writeFileSync(file, "");
+  };
+  const desktopRoot =
+    process.platform === "darwin"
+      ? path.join(home, "Library", "Application Support", "Claude", "claude-code")
+      : process.platform === "win32"
+        ? path.join(home, "AppData", "Roaming", "Claude", "claude-code")
+        : path.join(home, ".config", "Claude", "claude-code");
+  const desktop =
+    process.platform === "darwin"
+      ? path.join(desktopRoot, "2.1.284", "claude.app", "Contents", "MacOS", "claude")
+      : path.join(desktopRoot, "2.1.284", exe);
+  const ide = path.join(home, ".cursor", "extensions", "anthropic.claude-code-2.1.286-darwin-arm64", "resources", "native-binary", exe);
+  touch(desktop);
+  touch(ide);
+  const res = await cli(["connect", "claude-code", "--no-login"], { home });
+  assert.equal(res.code, 0, res.out);
+  assert.equal(res.calls[0].cmd, ide, "2.1.286 beats 2.1.284");
+  fs.rmSync(ide);
+  const desktopOnly = await cli(["connect", "claude-code", "--no-login"], { home });
+  assert.equal(desktopOnly.calls[0].cmd, desktop);
+  const none = await cli(["connect", "claude-code"], { home: tempHome() });
+  assert.equal(none.code, 1);
+  assert.match(none.out, /no Claude Code found/);
 });
 
 test("claude-code with a key: a user-scope server with the header, skills in ~/.claude/skills", async () => {

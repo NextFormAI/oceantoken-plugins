@@ -1,6 +1,6 @@
 {
   "name": "@oceantoken/cli",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Connect Codex, Claude Code, Cursor, Gemini CLI, OpenClaw, OpenCode, VS Code and other AI agents to OceanToken in one command.",
   "type": "module",
   "bin": {

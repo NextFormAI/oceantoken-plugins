@@ -15,7 +15,7 @@ do not pick one because it happens to be installed on the machine.
 
 ```sh
 npx -y @oceantoken/cli@latest connect codex        # Codex (CLI or app)
-npx -y @oceantoken/cli@latest connect claude-code  # Claude Code
+npx -y @oceantoken/cli@latest connect claude-code  # Claude Code: terminal, IDE extension or the Claude desktop app
 npx -y @oceantoken/cli@latest connect cursor       # Cursor
 npx -y @oceantoken/cli@latest connect gemini       # Gemini CLI
 npx -y @oceantoken/cli@latest connect openclaw     # OpenClaw
@@ -40,12 +40,13 @@ Sign-in is OAuth by default. The user signs in with their OceanToken account
 (or pastes an existing API key on the sign-in page). New users can create an
 account from the same page.
 
-- **Codex, OpenClaw, OpenCode, Hermes:** the command starts the host's own
-  sign-in, opens the browser and waits. Tell the user a browser window is
-  waiting for them, then wait for the command to finish.
-- **Claude Code, Gemini CLI, Cursor, VS Code, WorkBuddy, Windsurf:** sign-in
-  happens inside the app after the command finishes. Relay the "Next" line of
-  the report to the user.
+- **Codex, Claude Code, OpenClaw, OpenCode, Hermes:** the command starts the
+  host's own sign-in, opens the browser and waits. Tell the user a browser
+  window is waiting for them, then wait for the command to finish (it can take
+  a few minutes; do not cancel it).
+- **Gemini CLI, Cursor, VS Code, WorkBuddy, Windsurf:** sign-in happens inside
+  the app after the command finishes. Relay the "Next" line of the report to
+  the user.
 
 Do not open the authorization URL yourself, drive the browser, call OAuth
 endpoints, or start a second sign-in while one is waiting.

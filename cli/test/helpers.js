@@ -25,7 +25,7 @@ export async function cli(argv, { home = tempHome(), bins = [], respond, models 
     printErr: (l) => err.push(l),
     whichImpl: (cmd) => (bins.includes(cmd) ? `/fake/bin/${cmd}` : null),
     runner: async (cmd, args, opts) => {
-      calls.push({ cmd, args, inherit: Boolean(opts?.inherit) });
+      calls.push({ cmd, args, inherit: Boolean(opts?.inherit), tty: Boolean(opts?.tty) });
       return respond ? respond(cmd, args) : { code: 0, stdout: "", stderr: "" };
     },
     fetchImpl: async (url) => {

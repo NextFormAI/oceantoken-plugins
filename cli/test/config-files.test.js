@@ -5,6 +5,7 @@ import { test } from "node:test";
 import { codexBlock, removeBlock, upsertCodexBlock, upsertHermesServer } from "../src/lib/blocks.js";
 import { removeJsonEntry, stripJsonc, upsertJsonEntry } from "../src/lib/json-config.js";
 import { installSkills, removeSkills } from "../src/lib/skills.js";
+import { run, ttyCommand } from "../src/lib/run.js";
 import { exists, read, readJson, tempHome } from "./helpers.js";
 
 const URL = "https://mcp.oceantoken.ai/mcp";
@@ -85,3 +86,26 @@ test("skills are installed with an owner mark, and only owned folders are replac
   assert.deepEqual(removeSkills(dir).removed, ["oceantoken-media", "oceantoken-models"]);
   assert.equal(read(path.join(dir, "oceantoken-setup", "SKILL.md")), "mine");
 });
+
+test("a terminal is borrowed from `script`, fed by a pipe, with each platform's own syntax", () => {
+  const env = { PATH: path.dirname(process.execPath) + path.delimiter + "/usr/bin" + path.delimiter + "/bin" };
+  const mac = ttyCommand("/Apps/claude", ["mcp", "login", "plugin:oceantoken:oceantoken"], { platform: "darwin", env });
+  if (!mac) return; // no `script` on this machine (Windows)
+  assert.equal(mac.cmd, "sh");
+  assert.match(mac.args[1], /^sleep 86400 \| \{ script -q \/dev\/null "\$@"; rc=\$\?; pkill -P \$\$ sleep/);
+  assert.deepEqual(mac.args.slice(2), ["sh", "/Apps/claude", "mcp", "login", "plugin:oceantoken:oceantoken"]);
+  const linux = ttyCommand("/opt/My Claude/claude", ["mcp", "login", "x's"], { platform: "linux", env });
+  assert.match(linux.args[1], /script -q -e -c "\$1" \/dev\/null/);
+  assert.deepEqual(linux.args.slice(2), ["sh", "'/opt/My Claude/claude' mcp login 'x'\\''s'"]);
+  assert.equal(ttyCommand("claude", [], { platform: "win32", env }), null);
+});
+
+test(
+  "the wrapped command really gets a terminal and its exit status comes back",
+  { skip: !["darwin", "linux"].includes(process.platform) || process.stdin.isTTY },
+  async () => {
+    const res = await run("sh", ["-c", "[ -t 0 ] && echo has-tty || echo no-tty; exit 3"], { tty: true });
+    assert.match(res.stdout, /has-tty/);
+    assert.equal(res.code, 3);
+  },
+);
