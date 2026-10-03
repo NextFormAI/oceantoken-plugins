@@ -35,7 +35,9 @@ yes; never write a key anywhere without that confirmation.
 Add a provider and a profile to `~/.codex/config.toml` so the user's default
 setup stays untouched and OceanToken is one flag away. Pick the model with
 `search_models` (type `chat`, capability `tools`); OpenAI GPT-5 family models
-are the safe choice for Codex.
+are the safe choice for Codex. Do not pick `aion-labs/aion-2.0` for Codex or any
+agent that runs tools: after a tool call it tends to write its final answer into
+its reasoning, so the turn shows no answer. It is fine for plain chat.
 
 ```toml
 [model_providers.oceantoken]
