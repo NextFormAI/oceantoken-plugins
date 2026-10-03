@@ -33,6 +33,22 @@ npx -y @oceantoken/cli@latest connect windsurf     # Windsurf / Devin Desktop
 - Running it again is safe: it updates the plugin or entry in place.
 - Do not run it for other hosts the user did not ask about. Each host signs in
   separately.
+- If your host's permission system blocks the command (Claude Code's auto mode
+  can, since it downloads a package and changes the host's configuration), do
+  not retry it another way or work around the check. Tell the user, and offer
+  these in order:
+  1. Approve it: switch the session to a mode that asks before running
+     commands, then ask you again and allow the command when asked.
+  2. Run it themselves in a terminal:
+     `npx -y @oceantoken/cli@latest connect <host>`.
+  3. The host's own route.
+     - **Claude Code**: type `/plugin marketplace add NextFormAI/oceantoken-plugins`,
+       then `/plugin install oceantoken@oceantoken`, then `/mcp`, choose
+       `plugin:oceantoken:oceantoken` and select Authenticate.
+     - **Claude desktop app or claude.ai**: Settings → Connectors → Add custom
+       connector, URL `https://mcp.oceantoken.ai/mcp`, then Connect. If an
+       OceanToken connector is already there but its tools fail, disconnect it
+       and connect again.
 
 ## 3. Let the user sign in
 
