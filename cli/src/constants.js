@@ -3,6 +3,7 @@ export const DEFAULT_MCP_URL = "https://mcp.oceantoken.ai/mcp";
 export const API_BASE = "https://api.oceantoken.ai";
 export const KEYS_URL = "https://app.oceantoken.ai/ui/?page=api-keys";
 export const SIGNUP_URL = "https://app.oceantoken.ai/ui/signup/";
+export const DOCS_URL = "https://docs.oceantoken.ai/agents/connect";
 
 export const PLUGIN_REPO = "NextFormAI/oceantoken-plugins";
 export const PLUGIN_REPO_URL = `https://github.com/${PLUGIN_REPO}`;

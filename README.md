@@ -10,7 +10,9 @@
 [OceanToken](https://oceantoken.ai) is one account for 500+ AI models: GPT, Claude, Gemini,
 DeepSeek and Qwen for text; GPT Image, Seedream, Recraft and Gemini for images; Seedance, Veo,
 Sora and Wan for video; plus text-to-speech and transcription. This plugin brings all of it into
-your coding agent: Codex, Claude Code, Cursor, Gemini CLI, OpenClaw, VS Code and any other MCP client. Your agent can find a model, check what it costs, generate the asset, and save
+your coding agent: one command connects Codex, Claude Code, Cursor, Gemini CLI, OpenClaw,
+OpenCode, VS Code, WorkBuddy, Hermes Agent and Windsurf, and any other MCP client can add the
+server by hand. Your agent can find a model, check what it costs, generate the asset, and save
 it into your project.
 
 ## What your agent gets
@@ -55,9 +57,11 @@ npx -y @oceantoken/cli@latest connect <client>
 ```
 
 `<client>` is one of `codex`, `claude-code`, `cursor`, `gemini`, `openclaw`, `opencode`, `vscode`,
-`workbuddy`, `hermes` or `windsurf`. It installs the plugin or MCP entry and the skills, and starts
-the sign-in. See [cli/](cli/) for options (API keys, dry run, disconnect). The sections below do
-the same by hand.
+`workbuddy`, `hermes` or `windsurf`. It installs the plugin or MCP entry and the three skills
+(Windsurf / Devin Desktop has no skills folder, so it gets the server only), and starts the
+sign-in. See [cli/](cli/) for options (API keys, dry run, disconnect) and the
+[guide](https://docs.oceantoken.ai/agents/connect) for a walkthrough. The sections below do the
+same by hand.
 
 ### Codex
 
@@ -123,9 +127,10 @@ bearer token:
 export OCEANTOKEN_API_KEY=sk-...
 codex mcp add oceantoken --url https://mcp.oceantoken.ai/mcp --bearer-token-env-var OCEANTOKEN_API_KEY
 
-# Claude Code, without the plugin
+# Claude Code, without the plugin. The single quotes keep the key off the command line:
+# Claude Code reads OCEANTOKEN_API_KEY from its environment when it starts.
 claude mcp add --transport http oceantoken https://mcp.oceantoken.ai/mcp \
-  --header "Authorization: Bearer $OCEANTOKEN_API_KEY"
+  --header 'Authorization: Bearer ${OCEANTOKEN_API_KEY}'
 ```
 
 ```json
@@ -187,7 +192,8 @@ OceanToken by name, or make it a rule:
 The sign-in page offers two ways to connect:
 
 - **Sign in**: your OceanToken email and password. This creates an API key for the connecting
-  app, which you can see and revoke under **API keys** in the console.
+  app, which you can see and revoke under [API keys](https://app.oceantoken.ai/ui/?page=api-keys)
+  in the console.
 - **API key**: paste a key you already have. Give it a credit limit if you want a cap for the
   agent.
 
@@ -196,7 +202,7 @@ Revoking the key disconnects the app immediately.
 ## Costs
 
 You pay the model's usage from your prepaid OceanToken balance, at the prices on the
-[Models page](https://app.oceantoken.ai/ui/model_hub/). Ask your agent for an estimate first
+[Models page](https://oceantoken.ai/models). Ask your agent for an estimate first
 (`estimate_cost`). Video jobs place a small hold when they start and charge the actual cost when
 they finish. Failed jobs are not charged.
 

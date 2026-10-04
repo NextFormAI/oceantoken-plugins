@@ -2,14 +2,27 @@ import { createRequire } from "node:module";
 import os from "node:os";
 import { parseArgs } from "node:util";
 import { CLIENTS, findClient } from "./clients/index.js";
-import { DEFAULT_MCP_URL, KEYS_URL, SIGNUP_URL } from "./constants.js";
+import { DEFAULT_MCP_URL, DOCS_URL, KEYS_URL, SIGNUP_URL } from "./constants.js";
 import { createContext } from "./context.js";
 import { resolveApiKey, serverReachable, verifyApiKey } from "./lib/apikey.js";
 import { redact } from "./lib/run.js";
 
 const { version: VERSION } = createRequire(import.meta.url)("../package.json");
 
-const HELP = `OceanToken CLI ${VERSION}: connect your AI agent to OceanToken (500+ AI models, one account).
+/** Every flag the CLI accepts. HELP and the README's Options section list each one (a test checks). */
+export const OPTIONS = {
+  "api-key": { type: "string" },
+  "use-env-key": { type: "boolean", default: false },
+  "no-login": { type: "boolean", default: false },
+  "no-skills": { type: "boolean", default: false },
+  "dry-run": { type: "boolean", default: false },
+  json: { type: "boolean", default: false },
+  url: { type: "string" },
+  help: { type: "boolean", short: "h", default: false },
+  version: { type: "boolean", short: "v", default: false },
+};
+
+export const HELP = `OceanToken CLI ${VERSION}: connect your AI agent to OceanToken (500+ AI models, one account).
 
 Usage
   npx -y @oceantoken/cli@latest connect <client> [options]
@@ -28,26 +41,18 @@ Options for connect
   --json              Print the report as JSON
   --url <mcp-url>     MCP endpoint (default ${DEFAULT_MCP_URL})
 
+Other options
+  -h, --help          Show this help
+  -v, --version       Print the CLI version
+
 Sign-in uses OAuth by default: the client opens the OceanToken sign-in page.
+An API key is never passed to another program on its command line and never printed.
 API keys: ${KEYS_URL}   New account: ${SIGNUP_URL}
+Docs: ${DOCS_URL}
 `;
 
 function parse(argv) {
-  return parseArgs({
-    args: argv,
-    allowPositionals: true,
-    options: {
-      "api-key": { type: "string" },
-      "use-env-key": { type: "boolean", default: false },
-      "no-login": { type: "boolean", default: false },
-      "no-skills": { type: "boolean", default: false },
-      "dry-run": { type: "boolean", default: false },
-      json: { type: "boolean", default: false },
-      url: { type: "string" },
-      help: { type: "boolean", short: "h", default: false },
-      version: { type: "boolean", short: "v", default: false },
-    },
-  });
+  return parseArgs({ args: argv, allowPositionals: true, options: OPTIONS });
 }
 
 function detectedClients(base) {
