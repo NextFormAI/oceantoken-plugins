@@ -82,16 +82,21 @@ export function createContext({
 
     /**
      * Run a host CLI command as one step. `inherit` hands the terminal to the child
-     * (sign-in prints a URL and waits for the browser). In a dry run nothing runs.
+     * (sign-in prints a URL and waits for the browser). `input` goes to the child's stdin:
+     * an API key is only ever passed that way, never as an argument, because arguments
+     * show in the process list. In a dry run nothing runs.
      */
-    async exec(name, cmd, args, { inherit = false, tty = false, allowFail = false, okWhen } = {}) {
+    async exec(name, cmd, args, { inherit = false, tty = false, allowFail = false, okWhen, input } = {}) {
+      if (secrets.some((s) => [cmd, ...args].some((a) => String(a).includes(s)))) {
+        throw new Error(`refusing to pass the API key to ${cmd} on its command line`);
+      }
       const shown = `${cmd} ${args.map((a) => (/\s|["{]/.test(a) ? `'${a}'` : a)).join(" ")}`;
       if (dryRun) {
         ctx.step(name, "skipped", `would run: ${shown}`);
         return { ok: true, code: 0, stdout: "", stderr: "" };
       }
       if (inherit) say(`  ${MARKS.pending} ${name.padEnd(22)} ${shown}`);
-      const res = await runner(cmd, args, { inherit, tty, env });
+      const res = await runner(cmd, args, { inherit, tty, env, input });
       const output = `${res.stdout}\n${res.stderr}`;
       const ok = res.code === 0 || (okWhen ? okWhen(output) : false);
       if (ok) ctx.step(name, "ok", inherit ? "done" : shown);

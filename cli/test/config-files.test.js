@@ -7,7 +7,8 @@ import { removeJsonEntry, stripJsonc, upsertJsonEntry } from "../src/lib/json-co
 import { installSkills, removeSkills } from "../src/lib/skills.js";
 import { run, ttyCommand } from "../src/lib/run.js";
 import { backupFile, writeFileSafely } from "../src/lib/fsutil.js";
-import { exists, read, readJson, tempHome } from "./helpers.js";
+import { createContext } from "../src/context.js";
+import { KEY, exists, read, readJson, tempHome } from "./helpers.js";
 
 const URL = "https://mcp.oceantoken.ai/mcp";
 
@@ -71,6 +72,27 @@ test("connect, disconnect and connect again keep the user's original config (QA-
   removeJsonEntry(file, ["mcpServers", "oceantoken"]);
   upsertJsonEntry(file, ["mcpServers", "oceantoken"], { url: URL, headers: { Authorization: "Bearer k" } });
   assert.equal(read(`${file}.bak-oceantoken`), original);
+});
+
+test("input reaches the child on stdin, not in its arguments", async () => {
+  const res = await run(process.execPath, ["-e", "process.stdin.pipe(process.stdout)"], { input: `{"k":"${KEY}"}` });
+  assert.equal(res.code, 0, res.stderr);
+  assert.equal(res.stdout, `{"k":"${KEY}"}`);
+});
+
+test("a step that would put the API key on a command line is refused before anything runs", async () => {
+  const calls = [];
+  const ctx = createContext({
+    client: { id: "x", label: "X" },
+    home: tempHome(),
+    apiKey: KEY,
+    quiet: true,
+    runner: async (...args) => calls.push(args),
+  });
+  await assert.rejects(ctx.exec("MCP server", "tool", ["--header", `Authorization: Bearer ${KEY}`]), /refusing to pass the API key/);
+  assert.equal(calls.length, 0);
+  await ctx.exec("MCP server", "tool", ["patch", "--stdin"], { input: KEY });
+  assert.equal(calls[0][2].input, KEY, "stdin is the way to hand it over");
 });
 
 test("a key file is created owner-only", { skip: process.platform === "win32" }, () => {

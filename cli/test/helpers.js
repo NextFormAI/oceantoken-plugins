@@ -25,7 +25,7 @@ export async function cli(argv, { home = tempHome(), bins = [], respond, models 
     printErr: (l) => err.push(l),
     whichImpl: (cmd) => (bins.includes(cmd) ? `/fake/bin/${cmd}` : null),
     runner: async (cmd, args, opts) => {
-      calls.push({ cmd, args, inherit: Boolean(opts?.inherit), tty: Boolean(opts?.tty) });
+      calls.push({ cmd, args, inherit: Boolean(opts?.inherit), tty: Boolean(opts?.tty), input: opts?.input });
       return respond ? respond(cmd, args) : { code: 0, stdout: "", stderr: "" };
     },
     fetchImpl: async (url) => {
@@ -42,3 +42,11 @@ export async function cli(argv, { home = tempHome(), bins = [], respond, models 
 export const read = (file) => fs.readFileSync(file, "utf8");
 export const readJson = (file) => JSON.parse(read(file));
 export const exists = (file) => fs.existsSync(file);
+
+/** Every file below dir, recursively. */
+export function filesUnder(dir) {
+  return fs.readdirSync(dir, { withFileTypes: true }).flatMap((e) => {
+    const p = path.join(dir, e.name);
+    return e.isDirectory() ? filesUnder(p) : e.isFile() ? [p] : [];
+  });
+}

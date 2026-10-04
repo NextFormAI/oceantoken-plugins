@@ -2,10 +2,18 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 import { test } from "node:test";
-import { KEY, cli, exists, read, readJson, tempHome } from "./helpers.js";
+import { CLIENTS } from "../src/clients/index.js";
+import { KEY, cli, exists, filesUnder, read, readJson, tempHome } from "./helpers.js";
 
 const URL = "https://mcp.oceantoken.ai/mcp";
 const cmdline = (c) => [path.basename(c.cmd), ...c.args].join(" ");
+
+/** QA-093: an argument shows in `ps` to every user of the machine, so the key may only travel on stdin. */
+function assertKeyNotInArgv(res, label = "") {
+  for (const c of res.calls) {
+    assert.ok(![c.cmd, ...c.args].some((a) => a.includes(KEY)), `${label} key on a command line: ${cmdline(c)}`);
+  }
+}
 
 test("cursor: server entry and skills are written, a rerun changes nothing, disconnect removes both", async () => {
   const home = tempHome();
@@ -190,15 +198,51 @@ test("claude-code: without claude on PATH, the newest desktop-app or IDE-extensi
   assert.match(none.out, /no Claude Code found/);
 });
 
-test("claude-code with a key: a user-scope server with the header, skills in ~/.claude/skills", async () => {
-  const res = await cli(["connect", "claude-code", "--api-key", KEY], { bins: ["claude"] });
+test("claude-code with a key: the user-scope server goes into ~/.claude.json, never onto a command line", async () => {
+  const home = tempHome();
+  const file = path.join(home, ".claude.json");
+  fs.writeFileSync(file, JSON.stringify({ numStartups: 3, mcpServers: { github: { type: "http", url: "g" } } }));
+  const res = await cli(["connect", "claude-code", "--api-key", KEY], { home, bins: ["claude"] });
   assert.equal(res.code, 0, res.out);
-  assert.equal(
-    cmdline(res.calls[1]),
-    `claude mcp add --transport http --scope user oceantoken ${URL} --header Authorization: Bearer ${KEY}`,
-  );
-  assert.ok(exists(path.join(res.home, ".claude", "skills", "oceantoken-setup", "SKILL.md")));
+  assertKeyNotInArgv(res);
+  assert.deepEqual(readJson(file), {
+    numStartups: 3,
+    mcpServers: { github: { type: "http", url: "g" }, oceantoken: { type: "http", url: URL, headers: { Authorization: `Bearer ${KEY}` } } },
+  });
+  assert.ok(exists(path.join(home, ".claude", "skills", "oceantoken-setup", "SKILL.md")));
+  assert.match(res.out, /MCP server .*~\/\.claude\.json \(added\)/);
   assert.ok(!res.out.includes(KEY));
+});
+
+test("claude-code with a key honours CLAUDE_CONFIG_DIR and the legacy .config.json", async () => {
+  const home = tempHome();
+  const dir = path.join(home, "cc");
+  const res = await cli(["connect", "claude-code", "--api-key", KEY], { home, bins: ["claude"], env: { CLAUDE_CONFIG_DIR: dir } });
+  assert.equal(res.code, 0, res.out);
+  assert.equal(readJson(path.join(dir, ".claude.json")).mcpServers.oceantoken.headers.Authorization, `Bearer ${KEY}`);
+  assert.ok(exists(path.join(dir, "skills", "oceantoken-media")));
+
+  const legacyHome = tempHome();
+  const legacy = path.join(legacyHome, ".claude", ".config.json");
+  fs.mkdirSync(path.dirname(legacy));
+  fs.writeFileSync(legacy, "{}");
+  await cli(["connect", "claude-code", "--api-key", KEY], { home: legacyHome, bins: ["claude"] });
+  assert.equal(readJson(legacy).mcpServers.oceantoken.url, URL);
+  assert.ok(!exists(path.join(legacyHome, ".claude.json")));
+});
+
+test("claude-code and gemini without a key but with --url still use their own `mcp add`", async () => {
+  const custom = "https://mcp.example.test/mcp";
+  const claude = await cli(["connect", "claude-code", "--url", custom], { bins: ["claude"] });
+  assert.deepEqual(claude.calls.map(cmdline), [
+    "claude mcp remove oceantoken --scope user",
+    `claude mcp add --transport http --scope user oceantoken ${custom}`,
+  ]);
+  const gemini = await cli(["connect", "gemini", "--url", custom], { bins: ["gemini"] });
+  assert.deepEqual(gemini.calls.map(cmdline), [
+    "gemini mcp remove --scope user oceantoken",
+    `gemini mcp add --scope user --transport http oceantoken ${custom}`,
+  ]);
 });
 
 test("gemini: install the extension with consent, or update it when already there", async () => {
@@ -213,6 +257,54 @@ test("gemini: install the extension with consent, or update it when already ther
   fs.writeFileSync(path.join(home, ".gemini", "extensions", "oceantoken", "gemini-extension.json"), "{}");
   const update = await cli(["connect", "gemini"], { home, bins: ["gemini"] });
   assert.deepEqual(update.calls.map(cmdline), ["gemini extensions update oceantoken"]);
+});
+
+test("gemini with a key: the user-scope server goes into ~/.gemini/settings.json, never onto a command line", async () => {
+  const home = tempHome();
+  const file = path.join(home, ".gemini", "settings.json");
+  fs.mkdirSync(path.dirname(file));
+  fs.writeFileSync(file, JSON.stringify({ general: { vimMode: true }, mcpServers: { oceantoken: { httpUrl: "old" } } }));
+  const res = await cli(["connect", "gemini", "--api-key", KEY], { home, bins: ["gemini"] });
+  assert.equal(res.code, 0, res.out);
+  assertKeyNotInArgv(res);
+  assert.equal(res.calls.length, 0, "nothing is run: no extension, no `gemini mcp add`");
+  assert.deepEqual(readJson(file), {
+    general: { vimMode: true },
+    mcpServers: { oceantoken: { httpUrl: URL, headers: { Authorization: `Bearer ${KEY}` } } },
+  });
+  assert.ok(exists(path.join(home, ".gemini", "skills", "oceantoken-models", "SKILL.md")));
+  assert.ok(!res.out.includes(KEY));
+
+  const elsewhere = tempHome();
+  await cli(["connect", "gemini", "--api-key", KEY], { home: tempHome(), bins: ["gemini"], env: { GEMINI_CLI_HOME: elsewhere } });
+  assert.equal(readJson(path.join(elsewhere, ".gemini", "settings.json")).mcpServers.oceantoken.httpUrl, URL);
+});
+
+test("openclaw with a key: the server entry goes to `openclaw config patch` on stdin, not on the command line", async () => {
+  const res = await cli(["connect", "openclaw", "--api-key", KEY], { bins: ["openclaw"] });
+  assert.equal(res.code, 0, res.out);
+  assertKeyNotInArgv(res);
+  assert.deepEqual(res.calls.map(cmdline), [
+    "openclaw plugins install clawhub:@oceantoken/oceantoken --accept-capabilities",
+    "openclaw config patch --stdin --replace-path mcp.servers.oceantoken",
+  ]);
+  assert.deepEqual(JSON.parse(res.calls[1].input), {
+    mcp: { servers: { oceantoken: { url: URL, transport: "streamable-http", headers: { Authorization: `Bearer ${KEY}` } } } },
+  });
+  assert.ok(!res.out.includes(KEY));
+});
+
+test("with a key, no client puts it on a command line or in the output, and every client stores it", async () => {
+  const bins = ["codex", "claude", "gemini", "openclaw", "opencode", "hermes", "code", "cursor"];
+  for (const client of CLIENTS) {
+    const home = tempHome();
+    const res = await cli(["connect", client.id, "--api-key", KEY, "--no-login"], { home, bins });
+    assert.equal(res.code, 0, `${client.id}: ${res.out}`);
+    assertKeyNotInArgv(res, client.id);
+    assert.ok(!res.out.includes(KEY), `${client.id} printed the key`);
+    const stored = res.calls.some((c) => c.input?.includes(KEY)) || filesUnder(home).some((f) => read(f).includes(KEY));
+    assert.ok(stored, `${client.id} did not store the key anywhere`);
+  }
 });
 
 test("openclaw: ClawHub plugin for the skills, a managed OAuth server, then mcp login", async () => {

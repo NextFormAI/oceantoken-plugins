@@ -5,6 +5,12 @@ import { exists } from "../lib/fsutil.js";
 import { signInInApp } from "./common.js";
 
 const claudeDir = (ctx) => ctx.env.CLAUDE_CONFIG_DIR || ctx.path(".claude");
+/** Where Claude Code keeps user-scope MCP servers: ~/.claude.json, or the legacy ~/.claude/.config.json. */
+function claudeJson(ctx) {
+  const legacy = path.join(claudeDir(ctx), ".config.json");
+  if (exists(legacy)) return legacy;
+  return path.join(ctx.env.CLAUDE_CONFIG_DIR || ctx.home, ".claude.json");
+}
 const PLUGIN_SERVER = `plugin:${MARKETPLACE}:${SERVER_NAME}`;
 const INSTALL =
   "Install Claude Code first: npm install -g @anthropic-ai/claude-code, the Claude desktop app, or the Claude Code extension for VS Code or Cursor.";
@@ -119,13 +125,21 @@ export default {
         if (!res.ok) ctx.next(manualSignIn);
       }
     } else {
-      // Replace rather than duplicate a user-scope entry from an earlier run.
-      await ctx.exec("Old entry", claude, ["mcp", "remove", SERVER_NAME, "--scope", "user"], { allowFail: true });
-      const args = ["mcp", "add", "--transport", "http", "--scope", "user", SERVER_NAME, ctx.mcpUrl];
-      if (ctx.headers) args.push("--header", `Authorization: ${ctx.headers.Authorization}`);
-      const added = await ctx.exec("MCP server", claude, args);
-      if (!added.ok) return;
-      ctx.report.mcp = `${SERVER_NAME} (user scope)`;
+      if (ctx.headers) {
+        // `claude mcp add --header` would put the key on a command line, so the user-scope
+        // entry goes straight into the file `claude mcp add` writes.
+        const file = claudeJson(ctx);
+        const entry = { type: "http", url: ctx.mcpUrl, headers: ctx.headers };
+        if (!ctx.writeJson("MCP server", file, ["mcpServers", SERVER_NAME], entry)) return;
+        ctx.report.mcp = `${SERVER_NAME} (user scope, in ${file})`;
+      } else {
+        // Replace rather than duplicate a user-scope entry from an earlier run.
+        await ctx.exec("Old entry", claude, ["mcp", "remove", SERVER_NAME, "--scope", "user"], { allowFail: true });
+        const args = ["mcp", "add", "--transport", "http", "--scope", "user", SERVER_NAME, ctx.mcpUrl];
+        const added = await ctx.exec("MCP server", claude, args);
+        if (!added.ok) return;
+        ctx.report.mcp = `${SERVER_NAME} (user scope)`;
+      }
       ctx.installSkillsTo(`${claudeDir(ctx)}/skills`);
       signInInApp(ctx, `Sign in: in Claude Code run /mcp, choose ${SERVER_NAME} and select Authenticate.`);
     }
