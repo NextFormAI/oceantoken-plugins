@@ -16,6 +16,7 @@ export function tempHome() {
  */
 export async function cli(argv, { home = tempHome(), bins = [], respond, models = 200, reachable = true, env = {} } = {}) {
   const calls = [];
+  const fetched = [];
   const out = [];
   const err = [];
   const code = await main(argv, {
@@ -28,7 +29,8 @@ export async function cli(argv, { home = tempHome(), bins = [], respond, models 
       calls.push({ cmd, args, inherit: Boolean(opts?.inherit), tty: Boolean(opts?.tty), input: opts?.input });
       return respond ? respond(cmd, args) : { code: 0, stdout: "", stderr: "" };
     },
-    fetchImpl: async (url) => {
+    fetchImpl: async (url, init) => {
+      fetched.push({ url: String(url), auth: init?.headers?.Authorization ?? null });
       if (String(url).includes("/.well-known/")) {
         if (!reachable) throw new Error("offline");
         return { ok: true, status: 200 };
@@ -36,7 +38,7 @@ export async function cli(argv, { home = tempHome(), bins = [], respond, models 
       return { ok: models === 200, status: models };
     },
   });
-  return { code, home, calls, out: out.join("\n"), err: err.join("\n") };
+  return { code, home, calls, fetched, out: out.join("\n"), err: err.join("\n") };
 }
 
 export const read = (file) => fs.readFileSync(file, "utf8");

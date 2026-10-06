@@ -46,6 +46,10 @@ history and in the process list while the CLI runs.
 printf %s "$OCEANTOKEN_API_KEY" | npx -y @oceantoken/cli@latest connect <client> --api-key -
 ```
 
+The key is checked against the API that goes with the MCP endpoint: `https://api.oceantoken.ai`
+by default, `api.<domain>` for an `--url` on `mcp.<domain>`. With any other `--url` the key is
+not checked, so it goes nowhere except that server's config entry.
+
 ```sh
 npx -y @oceantoken/cli@latest clients              # supported clients and which are installed
 npx -y @oceantoken/cli@latest disconnect <client>  # remove what connect added

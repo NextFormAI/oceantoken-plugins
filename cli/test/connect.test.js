@@ -3,6 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { test } from "node:test";
 import { CLIENTS } from "../src/clients/index.js";
+import { apiBaseFor } from "../src/lib/apikey.js";
 import { KEY, cli, exists, filesUnder, read, readJson, tempHome } from "./helpers.js";
 
 const URL = "https://mcp.oceantoken.ai/mcp";
@@ -56,6 +57,42 @@ test("a rejected API key stops before anything is written", async () => {
   assert.equal(res.code, 1);
   assert.match(res.out, /API key .*rejected/);
   assert.ok(!exists(path.join(home, ".cursor", "mcp.json")));
+});
+
+const keyChecks = (res) => res.fetched.filter((f) => f.url.endsWith("/v1/models"));
+
+test("the API key is checked against the API that goes with --url, never against prod for another server", async () => {
+  const prod = await cli(["connect", "cursor", "--api-key", KEY]);
+  assert.deepEqual(keyChecks(prod), [{ url: "https://api.oceantoken.ai/v1/models", auth: `Bearer ${KEY}` }]);
+
+  const dev = await cli(["connect", "cursor", "--api-key", KEY, "--url", "https://mcp.dev.example.com/mcp"]);
+  assert.deepEqual(keyChecks(dev).map((f) => f.url), ["https://api.dev.example.com/v1/models"]);
+  assert.equal(dev.code, 0, dev.out);
+
+  const rejected = await cli(["connect", "cursor", "--api-key", KEY, "--url", "https://mcp.dev.example.com/mcp"], { models: 401 });
+  assert.equal(rejected.code, 1);
+  assert.match(rejected.out, /API key .*rejected by api\.dev\.example\.com/);
+
+  // A local or self-hosted server has no matching API: the key is not checked, not sent
+  // anywhere but that server's config entry, and a key prod would reject is not reported as rejected.
+  const home = tempHome();
+  const local = await cli(["connect", "cursor", "--api-key", KEY, "--url", "http://127.0.0.1:8765/mcp"], { home, models: 401 });
+  assert.deepEqual(keyChecks(local), []);
+  assert.ok(local.fetched.every((f) => f.auth === null), "no request carries the key");
+  assert.equal(local.code, 0, local.out);
+  assert.match(local.out, /API key .*not checked/);
+  assert.deepEqual(readJson(path.join(home, ".cursor", "mcp.json")).mcpServers.oceantoken, {
+    url: "http://127.0.0.1:8765/mcp",
+    headers: { Authorization: `Bearer ${KEY}` },
+  });
+});
+
+test("apiBaseFor pairs mcp.<domain> with api.<domain> and nothing else", () => {
+  assert.equal(apiBaseFor("https://mcp.oceantoken.ai/mcp"), "https://api.oceantoken.ai");
+  assert.equal(apiBaseFor("https://mcp.staging.oceantoken.ai:8443/mcp"), "https://api.staging.oceantoken.ai:8443");
+  assert.equal(apiBaseFor("http://127.0.0.1:8765/mcp"), null);
+  assert.equal(apiBaseFor("https://tools.example.com/mcp"), null);
+  assert.equal(apiBaseFor("not a url"), null);
 });
 
 test("a malformed key, an unknown client and a missing client are usage errors", async () => {

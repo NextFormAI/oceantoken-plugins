@@ -2,9 +2,9 @@ import { createRequire } from "node:module";
 import os from "node:os";
 import { parseArgs } from "node:util";
 import { CLIENTS, findClient } from "./clients/index.js";
-import { DEFAULT_MCP_URL, DOCS_URL, KEYS_URL, SIGNUP_URL } from "./constants.js";
+import { API_BASE, DEFAULT_MCP_URL, DOCS_URL, KEYS_URL, SIGNUP_URL } from "./constants.js";
 import { createContext } from "./context.js";
-import { resolveApiKey, serverReachable, verifyApiKey } from "./lib/apikey.js";
+import { apiBaseFor, resolveApiKey, serverReachable, verifyApiKey } from "./lib/apikey.js";
 import { redact } from "./lib/run.js";
 
 const { version: VERSION } = createRequire(import.meta.url)("../package.json");
@@ -170,10 +170,13 @@ export async function main(argv = process.argv.slice(2), deps = {}) {
     if (command === "connect") {
       if (await serverReachable(ctx.mcpUrl, { fetchImpl })) ctx.step("Server", "ok", ctx.mcpUrl);
       else ctx.step("Server", "manual", `${ctx.mcpUrl} did not answer; continuing`);
-      if (apiKey) {
-        const verdict = await verifyApiKey(apiKey, { fetchImpl });
+      const apiBase = apiKey ? apiBaseFor(ctx.mcpUrl) : null;
+      if (apiKey && !apiBase) {
+        ctx.step("API key", "manual", `not checked: ${ctx.mcpUrl} has no matching OceanToken API; continuing`);
+      } else if (apiKey) {
+        const verdict = await verifyApiKey(apiKey, { apiBase, fetchImpl });
         if (verdict === "rejected") {
-          ctx.step("API key", "failed", "rejected by OceanToken (wrong, revoked or expired)");
+          ctx.step("API key", "failed", `rejected by ${apiBase === API_BASE ? "OceanToken" : new URL(apiBase).host} (wrong, revoked or expired)`);
           ctx.next(`Create or copy a key at ${KEYS_URL} and run this again.`);
         } else {
           ctx.step("API key", verdict === "valid" ? "ok" : "manual", verdict === "valid" ? "accepted" : "could not be checked; continuing");
