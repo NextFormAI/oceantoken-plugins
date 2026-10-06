@@ -19,17 +19,42 @@ export function readIfExists(file) {
   }
 }
 
+const BACKUP_SUFFIX = ".bak-oceantoken";
+
+/** 2026-10-04T08:15:30.123Z -> 20261004T081530Z */
+const stamp = (date) => date.toISOString().replace(/[-:]/g, "").replace(/\.\d+/, "");
+
+/**
+ * Copy a file before this CLI rewrites it. The first copy, `<file>.bak-oceantoken`, is the
+ * file as it was before the CLI ever changed it and is never overwritten; every later
+ * rewrite leaves `<file>.bak-oceantoken-<UTC time>` with the file as it was just before.
+ * Returns the backup's path.
+ */
+export function backupFile(file, { now = new Date() } = {}) {
+  let target = `${file}${BACKUP_SUFFIX}`;
+  for (let n = 1; ; n++) {
+    try {
+      // EXCL: an existing backup is never replaced, not even by a second write in the same second.
+      fs.copyFileSync(file, target, fs.constants.COPYFILE_EXCL);
+      return target;
+    } catch (err) {
+      if (err.code !== "EEXIST") throw err;
+    }
+    target = `${file}${BACKUP_SUFFIX}-${stamp(now)}${n > 1 ? `-${n}` : ""}`;
+  }
+}
+
 /**
  * Write a file through a temp file and rename, so a crash never leaves half a config.
- * An existing file keeps its permissions and gets one backup copy first; a new file
- * that may hold a key is created owner-only.
+ * An existing file keeps its permissions and is backed up first (see backupFile); a new
+ * file that may hold a key is created owner-only.
  */
 export function writeFileSafely(file, text, { secret = false } = {}) {
   fs.mkdirSync(path.dirname(file), { recursive: true });
   let mode = secret ? 0o600 : 0o644;
   if (exists(file)) {
     mode = fs.statSync(file).mode & 0o777;
-    fs.copyFileSync(file, `${file}.bak-oceantoken`);
+    backupFile(file);
   }
   const tmp = `${file}.tmp-${process.pid}`;
   fs.writeFileSync(tmp, text, { mode });

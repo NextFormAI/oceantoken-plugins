@@ -6,7 +6,9 @@ import { codexBlock, removeBlock, upsertCodexBlock, upsertHermesServer } from ".
 import { removeJsonEntry, stripJsonc, upsertJsonEntry } from "../src/lib/json-config.js";
 import { installSkills, removeSkills } from "../src/lib/skills.js";
 import { run, ttyCommand } from "../src/lib/run.js";
-import { exists, read, readJson, tempHome } from "./helpers.js";
+import { backupFile, writeFileSafely } from "../src/lib/fsutil.js";
+import { createContext } from "../src/context.js";
+import { KEY, exists, read, readJson, tempHome } from "./helpers.js";
 
 const URL = "https://mcp.oceantoken.ai/mcp";
 
@@ -32,6 +34,65 @@ test("a JSON config with comments is never rewritten", () => {
   assert.match(res.snippet, /"oceantoken"/);
   assert.equal(read(file), text);
   assert.equal(stripJsonc('{"a": "http://x", // c\n "b": [1,],}'), '{"a": "http://x", \n "b": [1]}');
+});
+
+test("the first backup keeps the original for good; later writes leave timestamped backups (QA-118)", () => {
+  const dir = tempHome();
+  const file = path.join(dir, "mcp.json");
+  fs.writeFileSync(file, "original");
+  writeFileSafely(file, "first");
+  writeFileSafely(file, "second");
+  writeFileSafely(file, "third");
+  assert.equal(read(file), "third");
+  assert.equal(read(`${file}.bak-oceantoken`), "original", "the user's own file is never overwritten");
+  const later = fs.readdirSync(dir).filter((f) => f.startsWith("mcp.json.bak-oceantoken-")).sort();
+  assert.equal(later.length, 2);
+  assert.match(later[0], /^mcp\.json\.bak-oceantoken-\d{8}T\d{6}Z(-\d+)?$/);
+  assert.deepEqual(later.map((f) => read(path.join(dir, f))).sort(), ["first", "second"]);
+  assert.ok(!fs.readdirSync(dir).some((f) => f.includes(".tmp-")), "no temp file is left behind");
+});
+
+test("backups in the same second get their own names instead of replacing each other", () => {
+  const file = path.join(tempHome(), "config.toml");
+  const now = new Date("2026-10-04T08:15:30.123Z");
+  const names = ["a", "b", "c"].map((text) => {
+    fs.writeFileSync(file, text);
+    return path.basename(backupFile(file, { now }));
+  });
+  assert.deepEqual(names, ["config.toml.bak-oceantoken", "config.toml.bak-oceantoken-20261004T081530Z", "config.toml.bak-oceantoken-20261004T081530Z-2"]);
+  assert.equal(read(`${file}.bak-oceantoken`), "a");
+});
+
+test("connect, disconnect and connect again keep the user's original config (QA-118)", () => {
+  const file = path.join(tempHome(), ".cursor", "mcp.json");
+  fs.mkdirSync(path.dirname(file));
+  const original = `${JSON.stringify({ mcpServers: { github: { url: "g" } } })}\n`;
+  fs.writeFileSync(file, original);
+  upsertJsonEntry(file, ["mcpServers", "oceantoken"], { url: URL });
+  removeJsonEntry(file, ["mcpServers", "oceantoken"]);
+  upsertJsonEntry(file, ["mcpServers", "oceantoken"], { url: URL, headers: { Authorization: "Bearer k" } });
+  assert.equal(read(`${file}.bak-oceantoken`), original);
+});
+
+test("input reaches the child on stdin, not in its arguments", async () => {
+  const res = await run(process.execPath, ["-e", "process.stdin.pipe(process.stdout)"], { input: `{"k":"${KEY}"}` });
+  assert.equal(res.code, 0, res.stderr);
+  assert.equal(res.stdout, `{"k":"${KEY}"}`);
+});
+
+test("a step that would put the API key on a command line is refused before anything runs", async () => {
+  const calls = [];
+  const ctx = createContext({
+    client: { id: "x", label: "X" },
+    home: tempHome(),
+    apiKey: KEY,
+    quiet: true,
+    runner: async (...args) => calls.push(args),
+  });
+  await assert.rejects(ctx.exec("MCP server", "tool", ["--header", `Authorization: Bearer ${KEY}`]), /refusing to pass the API key/);
+  assert.equal(calls.length, 0);
+  await ctx.exec("MCP server", "tool", ["patch", "--stdin"], { input: KEY });
+  assert.equal(calls[0][2].input, KEY, "stdin is the way to hand it over");
 });
 
 test("a key file is created owner-only", { skip: process.platform === "win32" }, () => {
