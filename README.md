@@ -40,7 +40,7 @@ every host gets the same tools and skills.
 
 ## Install
 
-You need an OceanToken account ([sign up](https://app.oceantoken.ai/ui/signup/)) with some credit.
+You need an OceanToken account ([sign up](https://app.oceantoken.ai/ui/signup/?utm_source=oceantoken-plugins&utm_medium=readme)) with some credit.
 
 ### One command, any agent
 

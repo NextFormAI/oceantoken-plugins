@@ -2,7 +2,9 @@ export const SERVER_NAME = "oceantoken";
 export const DEFAULT_MCP_URL = "https://mcp.oceantoken.ai/mcp";
 export const API_BASE = "https://api.oceantoken.ai";
 export const KEYS_URL = "https://app.oceantoken.ai/ui/?page=api-keys";
-export const SIGNUP_URL = "https://app.oceantoken.ai/ui/signup/";
+// utm_source is what the sign-up records as the account's source (board C-074).
+export const SIGNUP_URL =
+  "https://app.oceantoken.ai/ui/signup/?utm_source=oceantoken-plugins&utm_medium=cli";
 
 export const PLUGIN_REPO = "NextFormAI/oceantoken-plugins";
 export const PLUGIN_REPO_URL = `https://github.com/${PLUGIN_REPO}`;
