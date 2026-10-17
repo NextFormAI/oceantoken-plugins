@@ -1,6 +1,8 @@
 export const SERVER_NAME = "oceantoken";
 export const DEFAULT_MCP_URL = "https://mcp.oceantoken.ai/mcp";
 export const API_BASE = "https://api.oceantoken.ai";
+/** Where `--use-env-key` reads the key, and where `use` tells the agent to read it. */
+export const KEY_ENV = "OCEANTOKEN_API_KEY";
 export const KEYS_URL = "https://app.oceantoken.ai/ui/?page=api-keys";
 export const SIGNUP_URL = "https://app.oceantoken.ai/ui/signup/";
 

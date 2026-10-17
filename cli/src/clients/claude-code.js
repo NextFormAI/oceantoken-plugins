@@ -3,6 +3,7 @@ import path from "node:path";
 import { DEFAULT_MCP_URL, MARKETPLACE, PLUGIN_ID, PLUGIN_REPO, SERVER_NAME } from "../constants.js";
 import { exists } from "../lib/fsutil.js";
 import { signInInApp } from "./common.js";
+import { claudeUnuse, claudeUse } from "./provider-switch.js";
 
 const claudeDir = (ctx) => ctx.env.CLAUDE_CONFIG_DIR || ctx.path(".claude");
 const PLUGIN_SERVER = `plugin:${MARKETPLACE}:${SERVER_NAME}`;
@@ -140,4 +141,7 @@ export default {
     }
     ctx.removeSkillsFrom(`${claudeDir(ctx)}/skills`);
   },
+
+  use: claudeUse,
+  unuse: claudeUnuse,
 };

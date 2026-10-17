@@ -1,5 +1,5 @@
 import path from "node:path";
-import { DEFAULT_MCP_URL } from "./constants.js";
+import { API_BASE, DEFAULT_MCP_URL } from "./constants.js";
 import { readIfExists, writeFileSafely } from "./lib/fsutil.js";
 import { removeJsonEntry, upsertJsonEntry } from "./lib/json-config.js";
 import { redact, run as realRun, which as realWhich } from "./lib/run.js";
@@ -17,7 +17,10 @@ export function createContext({
   home,
   env = process.env,
   mcpUrl = DEFAULT_MCP_URL,
+  apiBase = API_BASE,
   apiKey = null,
+  useEnvKey = false,
+  model = null,
   dryRun = false,
   login = true,
   skills = true,
@@ -34,6 +37,10 @@ export function createContext({
     mcpUrl,
     dryRun,
     steps: [],
+    provider: null,
+    model: null,
+    authIn: null,
+    backup: null,
     mcp: null,
     skills: null,
     signIn: null,
@@ -52,7 +59,10 @@ export function createContext({
     home,
     env,
     mcpUrl,
+    apiBase,
     apiKey,
+    useEnvKey,
+    model,
     dryRun,
     login,
     skills,
@@ -73,7 +83,7 @@ export function createContext({
     },
     /** Report fields go through the same cleaning as step lines before they are shown. */
     finalize() {
-      for (const field of ["mcp", "skills", "signIn", "restart"]) {
+      for (const field of ["mcp", "skills", "signIn", "restart", "provider", "model", "authIn", "backup"]) {
         if (report[field] != null) report[field] = clean(report[field]);
       }
       report.mcpUrl = clean(report.mcpUrl);

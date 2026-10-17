@@ -23,6 +23,29 @@ to the client, then starts the client's own OAuth sign-in where it has one.
 | Hermes Agent | `hermes` | `~/.hermes/config.yaml` + skills | `hermes mcp login` (browser) |
 | Windsurf / Devin Desktop | `windsurf` | `mcp_config.json` | in Cascade |
 
+## Run Codex or Claude Code on OceanToken models
+
+`connect` adds OceanToken's tools next to your agent's own models. `use` goes further and
+makes OceanToken the model provider the agent itself runs on, billed to your OceanToken
+balance:
+
+```sh
+npx -y @oceantoken/cli@latest use codex                    # GPT-5.5 through OceanToken
+npx -y @oceantoken/cli@latest use codex --model deepseek/deepseek-v4-pro
+npx -y @oceantoken/cli@latest use claude-code              # Opus/Sonnet/Haiku through OceanToken
+npx -y @oceantoken/cli@latest unuse codex                  # back to how it was
+```
+
+| Agent | What `use` changes | What `unuse` does |
+|---|---|---|
+| Codex | `~/.codex/config.toml`: top-level `model_provider` / `model` and a `[model_providers.oceantoken]` table (Responses API). Your own `model =` line is commented out, not deleted. | Removes both blocks and uncomments your lines |
+| Claude Code | `~/.claude/settings.json` → `env`: `ANTHROPIC_BASE_URL`, `ANTHROPIC_AUTH_TOKEN`, the Opus/Sonnet/Haiku model mapping (`ANTHROPIC_MODEL` with `--model`) | Puts back every value it replaced (saved in `~/.oceantoken/cli-state.json`) |
+
+Without `--api-key`, `use` opens the API keys page and asks you to paste a key (hidden).
+`--use-env-key` keeps the key out of the files: Codex reads `OCEANTOKEN_API_KEY` itself,
+Claude Code through `apiKeyHelper`. Every file is backed up once as `*.bak-oceantoken`, and a
+file that holds a key is made owner-only.
+
 ## Options
 
 ```text
