@@ -2,6 +2,7 @@ import { MARKER, MARKETPLACE, PLUGIN_ID, PLUGIN_REPO, SERVER_NAME } from "../con
 import { exists, readIfExists } from "../lib/fsutil.js";
 import { codexBlock, removeBlock, upsertCodexBlock } from "../lib/blocks.js";
 import { requireCli, signIn } from "./common.js";
+import { codexUnuse, codexUse } from "./provider-switch.js";
 
 const codexHome = (ctx) => ctx.env.CODEX_HOME || ctx.path(".codex");
 const configFile = (ctx) => `${codexHome(ctx)}/config.toml`;
@@ -50,4 +51,7 @@ export default {
     ctx.editText("MCP server", configFile(ctx), removeBlock);
     ctx.removeSkillsFrom(ctx.path(".agents", "skills"));
   },
+
+  use: codexUse,
+  unuse: codexUnuse,
 };

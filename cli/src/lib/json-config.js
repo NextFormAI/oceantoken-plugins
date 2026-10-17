@@ -118,3 +118,29 @@ export function removeJsonEntry(file, keyPath, { dryRun = false } = {}) {
   if (!dryRun) writeFileSafely(file, `${JSON.stringify(parsed.data, null, 2)}\n`);
   return { status: "removed" };
 }
+
+/**
+ * Apply `mutate(data)` to a JSON config object in one write, so the backup taken by
+ * writeFileSafely is the file as it was before this run. `mutate` changes `data` in
+ * place. Returns { status: created | updated | unchanged | manual, reason? }.
+ */
+export function editJsonObject(file, mutate, { dryRun = false, secret = false } = {}) {
+  const text = readIfExists(file);
+  let data = {};
+  if (text !== null) {
+    let parsed;
+    try {
+      parsed = parseConfig(text);
+    } catch {
+      return { status: "manual", reason: "the file is not valid JSON" };
+    }
+    if (!parsed.strict) return { status: "manual", reason: "the file has comments, so it was left untouched" };
+    if (!isRecord(parsed.data)) return { status: "manual", reason: "the file is not a JSON object" };
+    data = parsed.data;
+  }
+  const before = JSON.stringify(data);
+  mutate(data);
+  if (JSON.stringify(data) === before) return { status: "unchanged" };
+  if (!dryRun) writeFileSafely(file, `${JSON.stringify(data, null, 2)}\n`, { secret });
+  return { status: text === null ? "created" : "updated" };
+}

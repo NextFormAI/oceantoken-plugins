@@ -21,14 +21,14 @@ export function readIfExists(file) {
 
 /**
  * Write a file through a temp file and rename, so a crash never leaves half a config.
- * An existing file keeps its permissions and gets one backup copy first; a new file
- * that may hold a key is created owner-only.
+ * An existing file keeps its permissions and gets one backup copy first; a file that
+ * may hold a key is made owner-only, new or not.
  */
 export function writeFileSafely(file, text, { secret = false } = {}) {
   fs.mkdirSync(path.dirname(file), { recursive: true });
   let mode = secret ? 0o600 : 0o644;
   if (exists(file)) {
-    mode = fs.statSync(file).mode & 0o777;
+    mode = fs.statSync(file).mode & (secret ? 0o700 : 0o777);
     fs.copyFileSync(file, `${file}.bak-oceantoken`);
   }
   const tmp = `${file}.tmp-${process.pid}`;
