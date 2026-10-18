@@ -14,13 +14,14 @@ export function tempHome() {
  * `bins` lists the host CLIs that "exist"; every call to them is recorded and
  * answered by `respond` (default: success).
  */
-export async function cli(argv, { home = tempHome(), bins = [], respond, models = 200, reachable = true, env = {} } = {}) {
+export async function cli(argv, { home = tempHome(), bins = [], respond, models = 200, reachable = true, env = {}, promptKey } = {}) {
   const calls = [];
   const out = [];
   const err = [];
   const code = await main(argv, {
     home,
     env: { PATH: "/nonexistent", ...env },
+    ...(promptKey ? { promptKey } : {}),
     print: (l) => out.push(l),
     printErr: (l) => err.push(l),
     whichImpl: (cmd) => (bins.includes(cmd) ? `/fake/bin/${cmd}` : null),

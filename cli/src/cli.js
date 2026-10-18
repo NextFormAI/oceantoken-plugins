@@ -2,7 +2,7 @@ import { createRequire } from "node:module";
 import os from "node:os";
 import { parseArgs } from "node:util";
 import { CLIENTS, findClient } from "./clients/index.js";
-import { API_BASE, DEFAULT_MCP_URL, KEY_ENV, KEYS_URL, SIGNUP_URL } from "./constants.js";
+import { API_BASE, DEFAULT_MCP_URL, KEY_ENV, KEYS_URL, SIGNUP_URL, keysUrl, signupUrl } from "./constants.js";
 import { createContext } from "./context.js";
 import { resolveApiKey, serverReachable, verifyApiKey } from "./lib/apikey.js";
 import { openUrl, promptHidden } from "./lib/prompt.js";
@@ -162,7 +162,7 @@ export async function main(argv = process.argv.slice(2), deps = {}) {
     try {
       apiKey = await resolveApiKey({ flag: values["api-key"], useEnv: values["use-env-key"], env });
     } catch (err) {
-      printErr(`Error: ${err.message}. Create a key at ${KEYS_URL}`);
+      printErr(`Error: ${err.message}. Create a key at ${keysUrl(client.id)}`);
       return 2;
     }
   }
@@ -189,7 +189,7 @@ export async function main(argv = process.argv.slice(2), deps = {}) {
         const verdict = await verifyApiKey(apiKey, { fetchImpl });
         if (verdict === "rejected") {
           ctx.step("API key", "failed", "rejected by OceanToken (wrong, revoked or expired)");
-          ctx.next(`Create or copy a key at ${KEYS_URL} and run this again.`);
+          ctx.next(`Create or copy a key at ${keysUrl(client.id)} and run this again.`);
         } else {
           ctx.step("API key", verdict === "valid" ? "ok" : "manual", verdict === "valid" ? "accepted" : "could not be checked; continuing");
         }
@@ -218,15 +218,16 @@ export async function main(argv = process.argv.slice(2), deps = {}) {
 const USE_CLIENTS = () => CLIENTS.filter((c) => c.use).map((c) => c.id);
 
 /** The key for `use`: a flag, the environment, or pasted after the keys page opens. */
-async function keyForUse(values, { env, deps, print }) {
+async function keyForUse(client, values, { env, deps, print }) {
   const fromFlags = await resolveApiKey({ flag: values["api-key"], useEnv: values["use-env-key"], env });
   if (fromFlags) return fromFlags;
   const interactive = deps.promptKey ?? (process.stdin.isTTY && process.stdout.isTTY ? promptHidden : null);
   if (!interactive) {
     throw new Error(`no API key. Pass --api-key - (reads stdin) or --use-env-key with ${KEY_ENV} set`);
   }
-  print(`Opening ${KEYS_URL} - create a key there (no account yet? ${SIGNUP_URL}).`);
-  await openUrl(KEYS_URL, deps.runner ?? realRun);
+  const keys = keysUrl(client.id);
+  print(`Opening ${keys} - create a key there (no account yet? ${signupUrl(client.id)}).`);
+  await openUrl(keys, deps.runner ?? realRun);
   return resolveApiKey({ flag: await interactive("Paste your OceanToken API key (sk-...): ") });
 }
 
@@ -239,9 +240,9 @@ async function switchProvider(command, clientName, values, { base, deps, print, 
   let apiKey = null;
   if (command === "use") {
     try {
-      apiKey = await keyForUse(values, { env, deps, print });
+      apiKey = await keyForUse(client, values, { env, deps, print });
     } catch (err) {
-      printErr(`Error: ${err.message}. Create a key at ${KEYS_URL}`);
+      printErr(`Error: ${err.message}. Create a key at ${keysUrl(client.id)}`);
       return 2;
     }
   }
@@ -263,7 +264,7 @@ async function switchProvider(command, clientName, values, { base, deps, print, 
       const verdict = await verifyApiKey(apiKey, { apiBase: ctx.apiBase, fetchImpl });
       if (verdict === "rejected") {
         ctx.step("API key", "failed", "rejected by OceanToken (wrong, revoked or expired)");
-        ctx.next(`Create or copy a key at ${KEYS_URL} and run this again.`);
+        ctx.next(`Create or copy a key at ${keysUrl(client.id)} and run this again.`);
       } else {
         ctx.step("API key", verdict === "valid" ? "ok" : "manual", verdict === "valid" ? "accepted" : "could not be checked; continuing");
         await client.use(ctx);

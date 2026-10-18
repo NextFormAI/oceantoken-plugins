@@ -3,8 +3,28 @@ export const DEFAULT_MCP_URL = "https://mcp.oceantoken.ai/mcp";
 export const API_BASE = "https://api.oceantoken.ai";
 /** Where `--use-env-key` reads the key, and where `use` tells the agent to read it. */
 export const KEY_ENV = "OCEANTOKEN_API_KEY";
-export const KEYS_URL = "https://app.oceantoken.ai/ui/?page=api-keys";
-export const SIGNUP_URL = "https://app.oceantoken.ai/ui/signup/";
+export const CONSOLE_UI = "https://app.oceantoken.ai/ui/";
+
+/**
+ * A console link that says it came from this CLI: `src=cli`, plus `tool=<client id>` when the
+ * command names a client, so the console records a new account's entry as `cli:<id>`.
+ * Always a /ui/ path: the bare app root redirects and drops the query string.
+ */
+export function cliConsoleUrl(pathAndQuery = "", tool) {
+  const url = new URL(pathAndQuery, CONSOLE_UI);
+  url.searchParams.set("src", "cli");
+  if (tool) url.searchParams.set("tool", tool);
+  return url.toString();
+}
+
+/** The API keys page; `tool` is the client id (codex, claude-code, ...) when there is one. */
+export const keysUrl = (tool) => cliConsoleUrl("?page=api-keys", tool);
+/** The sign-up page; `tool` as for keysUrl. */
+export const signupUrl = (tool) => cliConsoleUrl("signup/", tool);
+
+/** Kept for compatibility: the same links without a client. */
+export const KEYS_URL = keysUrl();
+export const SIGNUP_URL = signupUrl();
 
 export const PLUGIN_REPO = "NextFormAI/oceantoken-plugins";
 export const PLUGIN_REPO_URL = `https://github.com/${PLUGIN_REPO}`;

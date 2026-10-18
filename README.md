@@ -40,7 +40,7 @@ every host gets the same tools and skills.
 
 ## Install
 
-You need an OceanToken account ([sign up](https://app.oceantoken.ai/ui/signup/)) with some credit.
+You need an OceanToken account ([sign up](https://app.oceantoken.ai/ui/signup/?utm_source=oceantoken-plugins&utm_medium=readme)) with some credit.
 
 ### One command, any agent
 
@@ -196,7 +196,7 @@ Revoking the key disconnects the app immediately.
 ## Costs
 
 You pay the model's usage from your prepaid OceanToken balance, at the prices on the
-[Models page](https://app.oceantoken.ai/ui/model_hub/). Ask your agent for an estimate first
+[Models page](https://app.oceantoken.ai/ui/model_hub/?utm_source=oceantoken-plugins&utm_medium=readme). Ask your agent for an estimate first
 (`estimate_cost`). Video jobs place a small hold when they start and charge the actual cost when
 they finish. Failed jobs are not charged.
 
