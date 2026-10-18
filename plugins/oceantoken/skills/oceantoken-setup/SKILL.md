@@ -23,7 +23,7 @@ yes; never write a key anywhere without that confirmation.
 
 ## The key
 
-1. The user creates a key at https://app.oceantoken.ai/ui/?page=api-keys (a
+1. The user creates a key at https://app.oceantoken.ai/ui/?page=api-keys&utm_source=oceantoken-plugins&utm_medium=skill&utm_campaign=oceantoken-setup (a
    credit limit per key is a good idea for agents).
 2. Store it as an environment variable, never in a repository file:
    `export OCEANTOKEN_API_KEY=sk-...` in the shell profile, or a `.env` that is
