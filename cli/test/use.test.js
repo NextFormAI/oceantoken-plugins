@@ -58,6 +58,10 @@ test("use codex writes config.toml with the key, never prints it, and unuse rest
   const back = await cli(["unuse", "codex"], { home });
   assert.equal(back.code, 0, back.out);
   assert.equal(read(file), USER_TOML);
+  // QA-118: unuse and a second use must not replace the first backup with the CLI's own output.
+  assert.equal(read(`${file}.bak-oceantoken`), USER_TOML, "unuse leaves the first backup alone");
+  await cli(["use", "codex", "--api-key", KEY, "--model", "deepseek/deepseek-v4-pro"], { home });
+  assert.equal(read(`${file}.bak-oceantoken`), USER_TOML, "the first backup is still the user's file");
 });
 
 test("use codex --use-env-key --model stores no key", async () => {
@@ -99,6 +103,7 @@ test("use claude-code sets the env block, keeps other settings, and unuse puts b
   const back = await cli(["unuse", "claude-code"], { home });
   assert.equal(back.code, 0, back.out);
   assert.deepEqual(readJson(file), original);
+  assert.deepEqual(readJson(`${file}.bak-oceantoken`), original, "three writes later, the first backup is the original");
   assert.match((await cli(["unuse", "claude-code"], { home })).out, /nothing to undo/);
 });
 
