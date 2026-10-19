@@ -29,6 +29,24 @@ export async function resolveApiKey({ flag, useEnv, env = process.env }) {
   return key;
 }
 
+/**
+ * The OceanToken API that belongs to an MCP endpoint, or null when it cannot be told.
+ * The tools are served from mcp.<domain> and the API from api.<domain>, so
+ * https://mcp.oceantoken.ai/mcp pairs with https://api.oceantoken.ai. For any other host
+ * (a local or self-hosted server) there is no API to check the key against, and the key
+ * is not sent anywhere else.
+ */
+export function apiBaseFor(mcpUrl) {
+  let u;
+  try {
+    u = new URL(mcpUrl);
+  } catch {
+    return null;
+  }
+  if (!/^https?:$/.test(u.protocol) || !u.hostname.startsWith("mcp.")) return null;
+  return `${u.protocol}//api.${u.host.slice("mcp.".length)}`;
+}
+
 /** valid | rejected | unverified (network trouble is not a verdict on the key). */
 export async function verifyApiKey(key, { apiBase = API_BASE, fetchImpl = globalThis.fetch } = {}) {
   try {

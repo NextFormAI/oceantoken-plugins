@@ -2,15 +2,30 @@ import { createRequire } from "node:module";
 import os from "node:os";
 import { parseArgs } from "node:util";
 import { CLIENTS, findClient } from "./clients/index.js";
-import { API_BASE, DEFAULT_MCP_URL, KEY_ENV, KEYS_URL, SIGNUP_URL } from "./constants.js";
+import { API_BASE, DEFAULT_MCP_URL, DOCS_URL, KEY_ENV, KEYS_URL, SIGNUP_URL, keysUrl, signupUrl } from "./constants.js";
 import { createContext } from "./context.js";
-import { resolveApiKey, serverReachable, verifyApiKey } from "./lib/apikey.js";
+import { apiBaseFor, resolveApiKey, serverReachable, verifyApiKey } from "./lib/apikey.js";
 import { openUrl, promptHidden } from "./lib/prompt.js";
 import { redact, run as realRun } from "./lib/run.js";
 
 const { version: VERSION } = createRequire(import.meta.url)("../package.json");
 
-const HELP = `OceanToken CLI ${VERSION}: connect your AI agent to OceanToken (500+ AI models, one account).
+/** Every flag the CLI accepts. HELP and the README's Options section list each one (a test checks). */
+export const OPTIONS = {
+  "api-key": { type: "string" },
+  "use-env-key": { type: "boolean", default: false },
+  "no-login": { type: "boolean", default: false },
+  "no-skills": { type: "boolean", default: false },
+  "dry-run": { type: "boolean", default: false },
+  json: { type: "boolean", default: false },
+  url: { type: "string" },
+  model: { type: "string" },
+  "api-base": { type: "string" },
+  help: { type: "boolean", short: "h", default: false },
+  version: { type: "boolean", short: "v", default: false },
+};
+
+export const HELP = `OceanToken CLI ${VERSION}: connect your AI agent to OceanToken (500+ AI models, one account).
 
 Usage
   npx -y @oceantoken/cli@latest connect <client> [options]
@@ -40,30 +55,21 @@ Options for use
   --use-env-key       Have the agent read the key from ${KEY_ENV} instead of storing it
   --model <id>        Model to run on, e.g. deepseek/deepseek-v4-pro (default: GPT-5.5
                       for Codex; Claude's own Opus/Sonnet/Haiku for Claude Code)
+  --api-base <url>    OceanToken API (default ${API_BASE})
   --dry-run, --json   As for connect
 
+Other options
+  -h, --help          Show this help
+  -v, --version       Print the CLI version
+
 Sign-in uses OAuth by default: the client opens the OceanToken sign-in page.
+An API key is never passed to another program on its command line and never printed.
 API keys: ${KEYS_URL}   New account: ${SIGNUP_URL}
+Docs: ${DOCS_URL}
 `;
 
 function parse(argv) {
-  return parseArgs({
-    args: argv,
-    allowPositionals: true,
-    options: {
-      "api-key": { type: "string" },
-      "use-env-key": { type: "boolean", default: false },
-      "no-login": { type: "boolean", default: false },
-      "no-skills": { type: "boolean", default: false },
-      "dry-run": { type: "boolean", default: false },
-      json: { type: "boolean", default: false },
-      url: { type: "string" },
-      model: { type: "string" },
-      "api-base": { type: "string" },
-      help: { type: "boolean", short: "h", default: false },
-      version: { type: "boolean", short: "v", default: false },
-    },
-  });
+  return parseArgs({ args: argv, allowPositionals: true, options: OPTIONS });
 }
 
 function detectedClients(base) {
@@ -162,7 +168,7 @@ export async function main(argv = process.argv.slice(2), deps = {}) {
     try {
       apiKey = await resolveApiKey({ flag: values["api-key"], useEnv: values["use-env-key"], env });
     } catch (err) {
-      printErr(`Error: ${err.message}. Create a key at ${KEYS_URL}`);
+      printErr(`Error: ${err.message}. Create a key at ${keysUrl(client.id)}`);
       return 2;
     }
   }
@@ -185,11 +191,14 @@ export async function main(argv = process.argv.slice(2), deps = {}) {
     if (command === "connect") {
       if (await serverReachable(ctx.mcpUrl, { fetchImpl })) ctx.step("Server", "ok", ctx.mcpUrl);
       else ctx.step("Server", "manual", `${ctx.mcpUrl} did not answer; continuing`);
-      if (apiKey) {
-        const verdict = await verifyApiKey(apiKey, { fetchImpl });
+      const apiBase = apiKey ? apiBaseFor(ctx.mcpUrl) : null;
+      if (apiKey && !apiBase) {
+        ctx.step("API key", "manual", `not checked: ${ctx.mcpUrl} has no matching OceanToken API; continuing`);
+      } else if (apiKey) {
+        const verdict = await verifyApiKey(apiKey, { apiBase, fetchImpl });
         if (verdict === "rejected") {
-          ctx.step("API key", "failed", "rejected by OceanToken (wrong, revoked or expired)");
-          ctx.next(`Create or copy a key at ${KEYS_URL} and run this again.`);
+          ctx.step("API key", "failed", `rejected by ${apiBase === API_BASE ? "OceanToken" : new URL(apiBase).host} (wrong, revoked or expired)`);
+          ctx.next(`Create or copy a key at ${keysUrl(client.id)} and run this again.`);
         } else {
           ctx.step("API key", verdict === "valid" ? "ok" : "manual", verdict === "valid" ? "accepted" : "could not be checked; continuing");
         }
@@ -218,15 +227,16 @@ export async function main(argv = process.argv.slice(2), deps = {}) {
 const USE_CLIENTS = () => CLIENTS.filter((c) => c.use).map((c) => c.id);
 
 /** The key for `use`: a flag, the environment, or pasted after the keys page opens. */
-async function keyForUse(values, { env, deps, print }) {
+async function keyForUse(client, values, { env, deps, print }) {
   const fromFlags = await resolveApiKey({ flag: values["api-key"], useEnv: values["use-env-key"], env });
   if (fromFlags) return fromFlags;
   const interactive = deps.promptKey ?? (process.stdin.isTTY && process.stdout.isTTY ? promptHidden : null);
   if (!interactive) {
     throw new Error(`no API key. Pass --api-key - (reads stdin) or --use-env-key with ${KEY_ENV} set`);
   }
-  print(`Opening ${KEYS_URL} - create a key there (no account yet? ${SIGNUP_URL}).`);
-  await openUrl(KEYS_URL, deps.runner ?? realRun);
+  const keys = keysUrl(client.id);
+  print(`Opening ${keys} - create a key there (no account yet? ${signupUrl(client.id)}).`);
+  await openUrl(keys, deps.runner ?? realRun);
   return resolveApiKey({ flag: await interactive("Paste your OceanToken API key (sk-...): ") });
 }
 
@@ -239,9 +249,9 @@ async function switchProvider(command, clientName, values, { base, deps, print, 
   let apiKey = null;
   if (command === "use") {
     try {
-      apiKey = await keyForUse(values, { env, deps, print });
+      apiKey = await keyForUse(client, values, { env, deps, print });
     } catch (err) {
-      printErr(`Error: ${err.message}. Create a key at ${KEYS_URL}`);
+      printErr(`Error: ${err.message}. Create a key at ${keysUrl(client.id)}`);
       return 2;
     }
   }
@@ -263,7 +273,7 @@ async function switchProvider(command, clientName, values, { base, deps, print, 
       const verdict = await verifyApiKey(apiKey, { apiBase: ctx.apiBase, fetchImpl });
       if (verdict === "rejected") {
         ctx.step("API key", "failed", "rejected by OceanToken (wrong, revoked or expired)");
-        ctx.next(`Create or copy a key at ${KEYS_URL} and run this again.`);
+        ctx.next(`Create or copy a key at ${keysUrl(client.id)} and run this again.`);
       } else {
         ctx.step("API key", verdict === "valid" ? "ok" : "manual", verdict === "valid" ? "accepted" : "could not be checked; continuing");
         await client.use(ctx);

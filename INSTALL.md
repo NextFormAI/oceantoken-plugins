@@ -70,7 +70,7 @@ endpoints, or start a second sign-in while one is waiting.
 ## 4. Use an API key only as a fallback
 
 Only when OAuth is not possible, or the user asks for a key: ask them to
-create one at https://app.oceantoken.ai/ui/?page=api-keys and hand it to you
+create one at https://app.oceantoken.ai/ui/?page=api-keys&utm_source=oceantoken-plugins&utm_medium=readme and hand it to you
 through a secure input. Pass it on stdin so it stays out of the command line:
 
 ```sh
