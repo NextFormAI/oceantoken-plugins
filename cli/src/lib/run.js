@@ -70,12 +70,14 @@ export function ttyCommand(exe, args, { platform = process.platform, env = proce
  * inherit: the child shares this terminal (used for sign-in, which prints a URL and waits).
  * Otherwise stdout/stderr are captured and returned.
  * tty: also give the child a terminal when this process has none (see ttyCommand).
+ * input: text written to the child's stdin, for anything secret: an argument would show
+ * in the process list.
  */
-export function run(cmd, args, { inherit = false, tty = false, env = process.env, timeoutMs = 10 * 60 * 1000 } = {}) {
+export function run(cmd, args, { inherit = false, tty = false, input, env = process.env, timeoutMs = 10 * 60 * 1000 } = {}) {
   return new Promise((resolve) => {
     let exe = which(cmd, env) || cmd;
     let argv = args;
-    let stdio = inherit ? "inherit" : ["ignore", "pipe", "pipe"];
+    let stdio = inherit ? "inherit" : [input === undefined ? "ignore" : "pipe", "pipe", "pipe"];
     if (tty && !process.stdin.isTTY) {
       const wrapped = ttyCommand(exe, args, { env });
       if (wrapped) {
@@ -90,6 +92,11 @@ export function run(cmd, args, { inherit = false, tty = false, env = process.env
       shell: useShell,
       stdio,
     });
+    if (input !== undefined && child.stdin) {
+      // A child that exits without reading its input must not crash this process (EPIPE).
+      child.stdin.on("error", () => {});
+      child.stdin.end(input);
+    }
     let stdout = "";
     let stderr = "";
     child.stdout?.on("data", (d) => (stdout += d));

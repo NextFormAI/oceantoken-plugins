@@ -48,6 +48,14 @@ export function createContext({
     next: [],
   };
 
+  // QA-093: an argument shows in `ps` to every user of the machine, so a step that would put
+  // the key on a command line fails before anything runs instead of leaking it.
+  const refuseKeyInArgv = (cmd, args) => {
+    if (secrets.some((s) => [cmd, ...args].some((a) => String(a).includes(s)))) {
+      throw new Error(`refusing to pass the API key to ${cmd} on its command line`);
+    }
+  };
+
   // Paths read better as ~/...; secrets never leave this object unredacted.
   const clean = (text) => redact(String(text), secrets).split(home).join("~");
   const say = (line) => {
@@ -92,16 +100,19 @@ export function createContext({
 
     /**
      * Run a host CLI command as one step. `inherit` hands the terminal to the child
-     * (sign-in prints a URL and waits for the browser). In a dry run nothing runs.
+     * (sign-in prints a URL and waits for the browser). `input` goes to the child's stdin:
+     * an API key is only ever passed that way, never as an argument, because arguments
+     * show in the process list. In a dry run nothing runs.
      */
-    async exec(name, cmd, args, { inherit = false, tty = false, allowFail = false, okWhen } = {}) {
+    async exec(name, cmd, args, { inherit = false, tty = false, allowFail = false, okWhen, input } = {}) {
+      refuseKeyInArgv(cmd, args);
       const shown = `${cmd} ${args.map((a) => (/\s|["{]/.test(a) ? `'${a}'` : a)).join(" ")}`;
       if (dryRun) {
         ctx.step(name, "skipped", `would run: ${shown}`);
         return { ok: true, code: 0, stdout: "", stderr: "" };
       }
       if (inherit) say(`  ${MARKS.pending} ${name.padEnd(22)} ${shown}`);
-      const res = await runner(cmd, args, { inherit, tty, env });
+      const res = await runner(cmd, args, { inherit, tty, env, input });
       const output = `${res.stdout}\n${res.stderr}`;
       const ok = res.code === 0 || (okWhen ? okWhen(output) : false);
       if (ok) ctx.step(name, "ok", inherit ? "done" : shown);
@@ -135,6 +146,7 @@ export function createContext({
 
     /** Run a host command only to read its output: no step, nothing in a dry run. */
     async query(cmd, args) {
+      refuseKeyInArgv(cmd, args);
       if (dryRun) return { code: 0, stdout: "", stderr: "" };
       return runner(cmd, args, { env });
     },

@@ -3,7 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { test } from "node:test";
 import { applyCodexProvider, revertCodexProvider } from "../src/lib/provider.js";
-import { KEY, cli, exists, read, readJson, tempHome } from "./helpers.js";
+import { KEY, assertKeyNotInArgv, cli, exists, read, readJson, tempHome } from "./helpers.js";
 
 const BASE = "https://api.oceantoken.ai";
 const USER_TOML = 'model = "gpt-5.5"\nmodel_reasoning_effort = "high"\n\n[mcp_servers.github]\nurl = "https://g"\n';
@@ -138,4 +138,26 @@ test("use --dry-run changes nothing", async () => {
   assert.ok(!exists(path.join(home, ".claude", "settings.json")));
   assert.ok(!exists(path.join(home, ".oceantoken")));
   assert.match(res.out, /Result {4}dry run/);
+});
+
+test("use and unuse never put the key on a command line, whichever way it is given (QA-093)", async () => {
+  for (const agent of ["codex", "claude-code"]) {
+    const ways = [
+      { argv: ["--api-key", KEY] },
+      { argv: ["--use-env-key"], env: { OCEANTOKEN_API_KEY: KEY } },
+      // No flag: the keys page is opened with the runner and the key is pasted.
+      { argv: [], promptKey: async () => KEY },
+      { argv: ["--api-key", KEY, "--dry-run"] },
+    ];
+    for (const way of ways) {
+      const home = tempHome();
+      const label = `use ${agent} ${way.argv.join(" ") || "(pasted)"}`;
+      const res = await cli(["use", agent, ...way.argv], { home, env: way.env, promptKey: way.promptKey, bins: ["codex", "claude"] });
+      assert.equal(res.code, 0, `${label}: ${res.out}${res.err}`);
+      assertKeyNotInArgv(assert, res, label);
+      assert.ok(!res.out.includes(KEY) && !res.err.includes(KEY), `${label} printed the key`);
+      if (!way.promptKey) assert.equal(res.calls.length, 0, `${label} runs nothing: it only edits files`);
+      assertKeyNotInArgv(assert, await cli(["unuse", agent], { home, bins: ["codex", "claude"] }), `unuse ${agent}`);
+    }
+  }
 });
