@@ -215,5 +215,5 @@ Generated files are stored in your OceanToken storage and shared as time-limited
 
 ## Support
 
-Open an [issue](https://github.com/NextFormAI/oceantoken-plugins/issues). OceanToken is a
-product of NextForm LLC.
+Open an [issue](https://github.com/NextFormAI/oceantoken-plugins/issues), or email
+support@oceantoken.ai.
