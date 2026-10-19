@@ -3,10 +3,10 @@
   "name": "ai.oceantoken/mcp",
   "title": "OceanToken",
   "description": "500+ AI models in one account: find and price models, make images, video, speech and text.",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "websiteUrl": "https://oceantoken.ai",
   "repository": {
-    "url": "https://github.com/NextFormAI/oceantoken-plugins",
+    "url": "https://github.com/OceanTokenAI/oceantoken-plugins",
     "source": "github"
   },
   "icons": [

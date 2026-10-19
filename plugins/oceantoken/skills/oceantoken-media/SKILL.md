@@ -30,7 +30,7 @@ openclaw mcp set oceantoken '{"url":"https://mcp.oceantoken.ai/mcp","transport":
 openclaw mcp login oceantoken
 ```
 
-For other hosts see https://github.com/NextFormAI/oceantoken-plugins#install.
+For other hosts see https://github.com/OceanTokenAI/oceantoken-plugins#install.
 
 ## 1. Settle the brief
 

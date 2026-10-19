@@ -7,7 +7,7 @@
   "homepage": "https://oceantoken.ai",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/NextFormAI/oceantoken-plugins.git",
+    "url": "git+https://github.com/OceanTokenAI/oceantoken-plugins.git",
     "directory": "plugins/oceantoken"
   },
   "license": "MIT",

@@ -27,7 +27,7 @@ export const signupUrl = (tool) => cliConsoleUrl("signup/", tool);
 export const KEYS_URL = keysUrl();
 export const SIGNUP_URL = signupUrl();
 
-export const PLUGIN_REPO = "NextFormAI/oceantoken-plugins";
+export const PLUGIN_REPO = "OceanTokenAI/oceantoken-plugins";
 export const PLUGIN_REPO_URL = `https://github.com/${PLUGIN_REPO}`;
 export const MARKETPLACE = "oceantoken";
 export const PLUGIN_ID = "oceantoken@oceantoken";

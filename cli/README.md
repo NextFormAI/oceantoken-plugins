@@ -117,7 +117,7 @@ Only what OceanToken needs, and it is safe to run again:
 ## Docs
 
 - Guide: https://docs.oceantoken.ai/agents/connect
-- Manual setup for every host: https://github.com/NextFormAI/oceantoken-plugins#install
+- Manual setup for every host: https://github.com/OceanTokenAI/oceantoken-plugins#install
 - Models and prices: https://oceantoken.ai/models?utm_source=oceantoken-plugins&utm_medium=readme
 
 ## For agents
