@@ -1,10 +1,11 @@
 name: CLI tests
 
+# The tests also check that the READMEs and INSTALL.md describe the CLI as it is.
 on:
   push:
-    paths: ["cli/**", "plugins/oceantoken/skills/**", ".github/workflows/cli.yml"]
+    paths: ["cli/**", "plugins/oceantoken/skills/**", "plugins/oceantoken/README.md", "README.md", "INSTALL.md", "GEMINI.md", ".github/workflows/cli.yml"]
   pull_request:
-    paths: ["cli/**", "plugins/oceantoken/skills/**", ".github/workflows/cli.yml"]
+    paths: ["cli/**", "plugins/oceantoken/skills/**", "plugins/oceantoken/README.md", "README.md", "INSTALL.md", "GEMINI.md", ".github/workflows/cli.yml"]
 
 permissions:
   contents: read

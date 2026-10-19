@@ -4,6 +4,7 @@ export const API_BASE = "https://api.oceantoken.ai";
 /** Where `--use-env-key` reads the key, and where `use` tells the agent to read it. */
 export const KEY_ENV = "OCEANTOKEN_API_KEY";
 export const CONSOLE_UI = "https://app.oceantoken.ai/ui/";
+export const DOCS_URL = "https://docs.oceantoken.ai/agents/connect";
 
 /**
  * A console link that says it came from this CLI: `src=cli`, plus `tool=<client id>` when the
