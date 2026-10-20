@@ -101,7 +101,7 @@ test("codex: marketplace, plugin, then the native OAuth sign-in in the user's te
   const res = await cli(["connect", "codex"], { bins: ["codex"] });
   assert.equal(res.code, 0, res.out);
   assert.deepEqual(res.calls.map(cmdline), [
-    "codex plugin marketplace add NextFormAI/oceantoken-plugins",
+    "codex plugin marketplace add OceanTokenAI/oceantoken-plugins",
     "codex plugin marketplace upgrade oceantoken",
     "codex plugin add oceantoken@oceantoken",
     "codex mcp login oceantoken",
@@ -161,7 +161,7 @@ test("claude-code: idempotent plugin install, then claude mcp login with a termi
   });
   assert.equal(res.code, 0, res.out);
   assert.deepEqual(res.calls.map(cmdline), [
-    "claude plugin marketplace add NextFormAI/oceantoken-plugins",
+    "claude plugin marketplace add OceanTokenAI/oceantoken-plugins",
     "claude plugin marketplace update oceantoken",
     "claude plugin install oceantoken@oceantoken",
     "claude plugin update oceantoken@oceantoken",
@@ -287,7 +287,7 @@ test("claude-code and gemini without a key but with --url still use their own `m
 test("gemini: install the extension with consent, or update it when already there", async () => {
   const fresh = await cli(["connect", "gemini"], { bins: ["gemini"] });
   assert.deepEqual(fresh.calls.map(cmdline), [
-    "gemini extensions install https://github.com/NextFormAI/oceantoken-plugins --consent",
+    "gemini extensions install https://github.com/OceanTokenAI/oceantoken-plugins --consent",
   ]);
   assert.match(fresh.out, /\/mcp auth oceantoken/);
 

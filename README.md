@@ -66,7 +66,7 @@ for a walkthrough. The sections below do the same by hand.
 ### Codex
 
 ```bash
-codex plugin marketplace add NextFormAI/oceantoken-plugins
+codex plugin marketplace add OceanTokenAI/oceantoken-plugins
 codex plugin add oceantoken@oceantoken
 codex mcp login oceantoken      # opens the OceanToken sign-in page
 ```
@@ -77,7 +77,7 @@ panel and sign in when asked.
 ### Claude Code
 
 ```text
-/plugin marketplace add NextFormAI/oceantoken-plugins
+/plugin marketplace add OceanTokenAI/oceantoken-plugins
 /plugin install oceantoken@oceantoken
 /mcp                             # pick "plugin:oceantoken:oceantoken" and authenticate
 ```
@@ -93,7 +93,7 @@ manifest).
 ### Gemini CLI
 
 ```bash
-gemini extensions install https://github.com/NextFormAI/oceantoken-plugins
+gemini extensions install https://github.com/OceanTokenAI/oceantoken-plugins
 ```
 
 Then, inside Gemini CLI, run `/mcp auth oceantoken` and sign in. The extension brings the MCP
@@ -215,5 +215,5 @@ Generated files are stored in your OceanToken storage and shared as time-limited
 
 ## Support
 
-Open an [issue](https://github.com/NextFormAI/oceantoken-plugins/issues), or email
+Open an [issue](https://github.com/OceanTokenAI/oceantoken-plugins/issues), or email
 support@oceantoken.ai.

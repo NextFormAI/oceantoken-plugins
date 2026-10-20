@@ -42,7 +42,7 @@ npx -y @oceantoken/cli@latest connect windsurf     # Windsurf / Devin Desktop
   2. Run it themselves in a terminal:
      `npx -y @oceantoken/cli@latest connect <host>`.
   3. The host's own route.
-     - **Claude Code**: type `/plugin marketplace add NextFormAI/oceantoken-plugins`,
+     - **Claude Code**: type `/plugin marketplace add OceanTokenAI/oceantoken-plugins`,
        then `/plugin install oceantoken@oceantoken`, then `/mcp`, choose
        `plugin:oceantoken:oceantoken` and select Authenticate.
      - **Claude desktop app or claude.ai**: Settings → Connectors → Add custom
@@ -100,4 +100,4 @@ says so, and ask what they would like to make first.
 npx -y @oceantoken/cli@latest disconnect <host>
 ```
 
-Manual setup for every host: https://github.com/NextFormAI/oceantoken-plugins#install
+Manual setup for every host: https://github.com/OceanTokenAI/oceantoken-plugins#install

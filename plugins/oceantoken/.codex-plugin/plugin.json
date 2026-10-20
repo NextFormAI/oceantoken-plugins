@@ -7,7 +7,7 @@
     "url": "https://oceantoken.ai"
   },
   "homepage": "https://oceantoken.ai",
-  "repository": "https://github.com/NextFormAI/oceantoken-plugins",
+  "repository": "https://github.com/OceanTokenAI/oceantoken-plugins",
   "license": "MIT",
   "keywords": [
     "oceantoken",
@@ -33,7 +33,7 @@
     "websiteURL": "https://oceantoken.ai",
     "privacyPolicyURL": "https://app.oceantoken.ai/legal/privacy",
     "termsOfServiceURL": "https://app.oceantoken.ai/legal/terms",
-    "supportURL": "https://github.com/NextFormAI/oceantoken-plugins/issues",
+    "supportURL": "https://github.com/OceanTokenAI/oceantoken-plugins/issues",
     "defaultPrompt": [
       "Find the cheapest video model that does 1080p with audio and estimate a 10-second clip",
       "Generate a 16:9 hero image for this landing page and save it to public/hero.png",
