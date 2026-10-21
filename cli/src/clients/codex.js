@@ -2,7 +2,8 @@ import { MARKER, MARKETPLACE, PLUGIN_ID, PLUGIN_REPO, SERVER_NAME } from "../con
 import { exists, readIfExists } from "../lib/fsutil.js";
 import { codexBlock, removeBlock, upsertCodexBlock } from "../lib/blocks.js";
 import { requireCli, signIn } from "./common.js";
-import { codexUnuse, codexUse } from "./provider-switch.js";
+import { codexUnuse, codexUse } from "./codex-use.js";
+import { codexProviderKey } from "../lib/provider.js";
 
 const codexHome = (ctx) => ctx.env.CODEX_HOME || ctx.path(".codex");
 const configFile = (ctx) => `${codexHome(ctx)}/config.toml`;
@@ -54,4 +55,6 @@ export default {
 
   use: codexUse,
   unuse: codexUnuse,
+  /** The key an earlier `use codex` stored, so a rerun needs none pasted. */
+  savedKey: (ctx) => codexProviderKey(readIfExists(configFile(ctx))),
 };

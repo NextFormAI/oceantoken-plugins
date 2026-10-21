@@ -1,12 +1,10 @@
 import { KEY_ENV } from "../constants.js";
-import { readIfExists } from "../lib/fsutil.js";
 import { editJsonObject } from "../lib/json-config.js";
-import { applyCodexProvider, revertCodexProvider } from "../lib/provider.js";
 import { readState, stateFile, writeState } from "../lib/state.js";
 
 // `use` / `unuse`: make OceanToken the model provider of a coding agent, and undo it.
 // Unlike `connect`, which adds OceanToken's tools next to the agent's own models,
-// this replaces the models the agent itself runs on.
+// this replaces the models the agent itself runs on. Codex's side is in codex-use.js.
 
 export const CODEX_DEFAULT_MODEL = "openai/gpt-5.5";
 export const CLAUDE_DEFAULT_MODELS = {
@@ -17,38 +15,10 @@ export const CLAUDE_DEFAULT_MODELS = {
 // apiKeyHelper's output is sent as the key; Claude Code runs it in a shell.
 const ENV_KEY_HELPER = `printenv ${KEY_ENV}`;
 
-const codexConfig = (ctx) => `${ctx.env.CODEX_HOME || ctx.path(".codex")}/config.toml`;
 const claudeSettings = (ctx) => `${ctx.env.CLAUDE_CONFIG_DIR || ctx.path(".claude")}/settings.json`;
 
-function authText(ctx) {
+export function authText(ctx) {
   return ctx.useEnvKey ? `the ${KEY_ENV} environment variable` : "an API key saved in the config (owner-only file)";
-}
-
-export async function codexUse(ctx) {
-  const file = codexConfig(ctx);
-  const model = ctx.model ?? CODEX_DEFAULT_MODEL;
-  const auth = ctx.useEnvKey ? { envKey: KEY_ENV } : { headers: { Authorization: `Bearer ${ctx.apiKey}` } };
-  const ok = ctx.editText("Model provider", file, (text) =>
-    applyCodexProvider(text, { baseUrl: `${ctx.apiBase}/v1`, model, auth }),
-  );
-  if (!ok) {
-    ctx.next(`Rename or remove your own [model_providers.oceantoken] table in ${file}, then run this again.`);
-    return;
-  }
-  ctx.report.provider = `OceanToken (${ctx.apiBase}/v1, Responses API)`;
-  ctx.report.model = model;
-  ctx.report.authIn = authText(ctx);
-  ctx.report.backup = readIfExists(`${file}.bak-oceantoken`) !== null ? `${file}.bak-oceantoken` : "none (new file)";
-  ctx.report.restart = "start a new Codex session";
-  if (ctx.useEnvKey) ctx.next(`Codex reads the key from ${KEY_ENV}: export it in your shell profile.`);
-  if (!model.startsWith("openai/")) {
-    ctx.next(`Codex has no built-in profile for ${model}; it falls back to defaults and prints a warning. Tools still work.`);
-  }
-}
-
-export async function codexUnuse(ctx) {
-  ctx.editText("Model provider", codexConfig(ctx), revertCodexProvider);
-  ctx.report.restart = "start a new Codex session";
 }
 
 /** The settings `use claude-code` writes: env entries, and apiKeyHelper in env-key mode. */

@@ -24,6 +24,10 @@ export function createContext({
   dryRun = false,
   login = true,
   skills = true,
+  tools = true,
+  moveChats = false,
+  confirm = null,
+  appEngines,
   quiet = false,
   runner = realRun,
   whichImpl = realWhich,
@@ -43,6 +47,8 @@ export function createContext({
     backup: null,
     mcp: null,
     skills: null,
+    instructions: null,
+    chats: null,
     signIn: null,
     restart: null,
     next: [],
@@ -74,6 +80,12 @@ export function createContext({
     dryRun,
     login,
     skills,
+    tools,
+    moveChats,
+    /** Ask the user a yes/no question on the terminal; null when there is no terminal. */
+    confirm,
+    /** Where desktop apps keep their Codex engine (tests replace it). */
+    appEngines,
     report,
     /** The host's own plugin/extension can be used: OAuth against the production server. */
     native: !apiKey && mcpUrl === DEFAULT_MCP_URL,
@@ -91,7 +103,7 @@ export function createContext({
     },
     /** Report fields go through the same cleaning as step lines before they are shown. */
     finalize() {
-      for (const field of ["mcp", "skills", "signIn", "restart", "provider", "model", "authIn", "backup"]) {
+      for (const field of ["mcp", "skills", "instructions", "chats", "signIn", "restart", "provider", "model", "authIn", "backup"]) {
         if (report[field] != null) report[field] = clean(report[field]);
       }
       report.mcpUrl = clean(report.mcpUrl);
@@ -150,6 +162,11 @@ export function createContext({
       if (dryRun) return { code: 0, stdout: "", stderr: "" };
       return runner(cmd, args, { env });
     },
+    /** Run a read-only command (`ps`, `codex debug models`), in a dry run too: it changes nothing. */
+    async probe(cmd, args, { env: probeEnv } = {}) {
+      refuseKeyInArgv(cmd, args);
+      return runner(cmd, args, { env: probeEnv ?? env });
+    },
 
     /** Apply a text edit (TOML/YAML block) to a file. */
     editText(name, file, edit) {
@@ -178,8 +195,8 @@ export function createContext({
       ctx.step("Skills", "ok", `${res.installed.length} in ${dir}`);
       report.skills = `${res.installed.join(", ")} in ${dir}`;
     },
-    removeSkillsFrom(dir) {
-      const res = removeSkills(dir, { dryRun });
+    removeSkillsFrom(dir, names) {
+      const res = removeSkills(dir, { dryRun, ...(names ? { names } : {}) });
       ctx.step("Skills", res.removed.length ? "ok" : "skipped", res.removed.length ? `removed from ${dir}` : `none in ${dir}`);
     },
   };

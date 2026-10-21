@@ -32,6 +32,7 @@ balance:
 
 ```sh
 npx -y @oceantoken/cli@latest use codex                    # GPT-5.5 through OceanToken
+npx -y @oceantoken/cli@latest use codex --move-chats       # ...and your existing chats too
 npx -y @oceantoken/cli@latest use codex --model deepseek/deepseek-v4-pro
 npx -y @oceantoken/cli@latest use claude-code              # Opus/Sonnet/Haiku through OceanToken
 npx -y @oceantoken/cli@latest unuse codex                  # back to how it was
@@ -39,10 +40,39 @@ npx -y @oceantoken/cli@latest unuse codex                  # back to how it was
 
 | Agent | What `use` changes | What `unuse` does |
 |---|---|---|
-| Codex | `~/.codex/config.toml`: top-level `model_provider` / `model` and a `[model_providers.oceantoken]` table (Responses API). Your own `model =` line is commented out, not deleted. | Removes both blocks and uncomments your lines |
+| Codex | `~/.codex/config.toml`: top-level `model_provider` / `model` and a `[model_providers.oceantoken]` table (Responses API). Your own `model =` line is commented out, not deleted. A model list for Codex's picker (`~/.codex/oceantoken-models.json`, named by `model_catalog_json`) with OceanToken's ids (`openai/gpt-6-luna`), built from your own Codex's list. Unless `--no-tools`: the OceanToken tools (an `[mcp_servers.oceantoken]` table with the same key, or the plugin if `connect codex` installed it), the skills in `~/.agents/skills`, and a short note in `~/.codex/AGENTS.md` that sends image, video and audio requests to those tools | Removes both blocks and uncomments your lines; removes the model list, and the tools, skills and note `use` added (not what `connect` added) |
 | Claude Code | `~/.claude/settings.json` → `env`: `ANTHROPIC_BASE_URL`, `ANTHROPIC_AUTH_TOKEN`, the Opus/Sonnet/Haiku model mapping (`ANTHROPIC_MODEL` with `--model`) | Puts back every value it replaced (saved in `~/.oceantoken/cli-state.json`) |
 
-Without `--api-key`, `use` opens the API keys page and asks you to paste a key (hidden).
+Codex refuses to start while `model_catalog_json` names a file that is missing or broken,
+so leave `~/.codex/oceantoken-models.json` in place while `use` is on (`unuse` removes the
+setting first, then the file; running `use codex` again rewrites it).
+
+Codex on OceanToken has no built-in image tool (that comes with a ChatGPT plan), which is
+why `use codex` adds OceanToken's tools: "generate an image of a cat" then runs on your
+OceanToken balance instead of failing or going to a third-party app.
+
+### Existing Codex chats
+
+Codex keeps every chat on the provider it was started on, so after `use codex` your
+earlier chats still run on your ChatGPT plan (and its limits); new chats use OceanToken.
+`--move-chats` moves them too, and `unuse codex --move-chats` moves them back:
+
+- Quit the ChatGPT app (and any `codex` you have running) first; the CLI refuses while
+  Codex is running, because Codex rewrites these files while it runs.
+- `use` changes only Codex's chat list (`~/.codex/state_5.sqlite`: each chat's provider,
+  and its model under OceanToken's name, `gpt-6-astra` -> `openai/gpt-6-astra`). Chats on
+  a model OceanToken does not offer stay where they are.
+- `unuse` moves back the chats on OpenAI models. A ChatGPT plan cannot read the hidden
+  reasoning OceanToken produced, so that reasoning is blanked in the chat files; the
+  visible conversation is untouched. Chats on other publishers' models stay on OceanToken.
+- Before anything changes, the chat list (and every chat file `unuse` edits) is copied to
+  `~/.codex/backups/oceantoken-cli-<UTC time>/`, with a `manifest.json` of what moved.
+
+Without `--move-chats`, `use` and `unuse` say how many chats stay behind and, in a
+terminal, offer to move them (the default is no).
+
+Without `--api-key`, `use` opens the API keys page and asks you to paste a key (hidden);
+a later `use codex` reuses the key the first one saved.
 `--use-env-key` keeps the key out of the files: Codex reads `OCEANTOKEN_API_KEY` itself,
 Claude Code through `apiKeyHelper`. Every file is backed up before it is changed (see
 [What it changes](#what-it-changes)), and a file that holds a key is made owner-only.
@@ -65,7 +95,10 @@ Options for use
   --model <id>        Model to run on, e.g. deepseek/deepseek-v4-pro (default: GPT-5.5
                       for Codex; Claude's own Opus/Sonnet/Haiku for Claude Code)
   --api-base <url>    OceanToken API (default https://api.oceantoken.ai)
-  --dry-run, --json   As for connect
+  --move-chats        Codex: also move your existing chats to OceanToken (with unuse:
+                      back to your ChatGPT plan). Quit Codex first; a backup is made
+  --no-tools          Codex: do not add OceanToken's image/video/speech tools and skills
+  --url, --no-skills, --dry-run, --json   As for connect
 
 Other options
   -h, --help          Show this help

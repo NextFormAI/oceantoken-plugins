@@ -1,11 +1,12 @@
 import { createRequire } from "node:module";
 import os from "node:os";
+import path from "node:path";
 import { parseArgs } from "node:util";
 import { CLIENTS, findClient } from "./clients/index.js";
 import { API_BASE, DEFAULT_MCP_URL, DOCS_URL, KEY_ENV, KEYS_URL, SIGNUP_URL, keysUrl, signupUrl } from "./constants.js";
 import { createContext } from "./context.js";
-import { apiBaseFor, resolveApiKey, serverReachable, verifyApiKey } from "./lib/apikey.js";
-import { openUrl, promptHidden } from "./lib/prompt.js";
+import { apiBaseFor, mcpUrlFor, resolveApiKey, serverReachable, verifyApiKey } from "./lib/apikey.js";
+import { openUrl, promptHidden, promptYesNo } from "./lib/prompt.js";
 import { redact, run as realRun } from "./lib/run.js";
 
 const { version: VERSION } = createRequire(import.meta.url)("../package.json");
@@ -16,6 +17,8 @@ export const OPTIONS = {
   "use-env-key": { type: "boolean", default: false },
   "no-login": { type: "boolean", default: false },
   "no-skills": { type: "boolean", default: false },
+  "no-tools": { type: "boolean", default: false },
+  "move-chats": { type: "boolean", default: false },
   "dry-run": { type: "boolean", default: false },
   json: { type: "boolean", default: false },
   url: { type: "string" },
@@ -36,7 +39,7 @@ Usage
 
 connect adds OceanToken's tools (image, video, speech, 500+ models) to your agent.
 use makes OceanToken the model provider the agent itself runs on, billed to your
-OceanToken balance; unuse puts the previous setup back.
+OceanToken balance (for Codex it also adds the tools); unuse puts the previous setup back.
 
 Clients
 ${CLIENTS.map((c) => `  ${c.id.padEnd(12)} ${c.label}`).join("\n")}
@@ -56,7 +59,10 @@ Options for use
   --model <id>        Model to run on, e.g. deepseek/deepseek-v4-pro (default: GPT-5.5
                       for Codex; Claude's own Opus/Sonnet/Haiku for Claude Code)
   --api-base <url>    OceanToken API (default ${API_BASE})
-  --dry-run, --json   As for connect
+  --move-chats        Codex: also move your existing chats to OceanToken (with unuse:
+                      back to your ChatGPT plan). Quit Codex first; a backup is made
+  --no-tools          Codex: do not add OceanToken's image/video/speech tools and skills
+  --url, --no-skills, --dry-run, --json   As for connect
 
 Other options
   -h, --help          Show this help
@@ -226,10 +232,15 @@ export async function main(argv = process.argv.slice(2), deps = {}) {
 
 const USE_CLIENTS = () => CLIENTS.filter((c) => c.use).map((c) => c.id);
 
-/** The key for `use`: a flag, the environment, or pasted after the keys page opens. */
-async function keyForUse(client, values, { env, deps, print }) {
+/** The key for `use`: a flag, the environment, the key an earlier `use` stored, or pasted. */
+async function keyForUse(client, values, { base, env, deps, print }) {
   const fromFlags = await resolveApiKey({ flag: values["api-key"], useEnv: values["use-env-key"], env });
   if (fromFlags) return fromFlags;
+  const saved = client.savedKey?.({ env, path: (...p) => path.join(base.home, ...p) });
+  if (saved) {
+    print("Using the API key an earlier `use` saved in the config.");
+    return saved;
+  }
   const interactive = deps.promptKey ?? (process.stdin.isTTY && process.stdout.isTTY ? promptHidden : null);
   if (!interactive) {
     throw new Error(`no API key. Pass --api-key - (reads stdin) or --use-env-key with ${KEY_ENV} set`);
@@ -249,21 +260,30 @@ async function switchProvider(command, clientName, values, { base, deps, print, 
   let apiKey = null;
   if (command === "use") {
     try {
-      apiKey = await keyForUse(client, values, { env, deps, print });
+      apiKey = await keyForUse(client, values, { base, env, deps, print });
     } catch (err) {
       printErr(`Error: ${err.message}. Create a key at ${keysUrl(client.id)}`);
       return 2;
     }
   }
   const quiet = values.json;
+  const apiBase = (values["api-base"] ?? API_BASE).replace(/\/+$/, "");
+  const interactive = !quiet && !values["dry-run"] && process.stdin.isTTY && process.stdout.isTTY;
   const ctx = createContext({
     client,
     ...base,
-    apiBase: (values["api-base"] ?? API_BASE).replace(/\/+$/, ""),
+    apiBase,
+    // The tools that go with this API: the default pair, mcp.<domain> for api.<domain>, or --url.
+    mcpUrl: values.url ?? (apiBase === API_BASE ? DEFAULT_MCP_URL : mcpUrlFor(apiBase)),
     apiKey,
     useEnvKey: values["use-env-key"],
     model: values.model ?? null,
     dryRun: values["dry-run"],
+    skills: !values["no-skills"],
+    tools: !values["no-tools"],
+    moveChats: values["move-chats"],
+    confirm: deps.confirm ?? (interactive ? promptYesNo : null),
+    appEngines: deps.appEngines,
     quiet,
   });
   const fetchImpl = deps.fetchImpl ?? globalThis.fetch;
@@ -276,10 +296,10 @@ async function switchProvider(command, clientName, values, { base, deps, print, 
         ctx.next(`Create or copy a key at ${keysUrl(client.id)} and run this again.`);
       } else {
         ctx.step("API key", verdict === "valid" ? "ok" : "manual", verdict === "valid" ? "accepted" : "could not be checked; continuing");
-        await client.use(ctx);
+        await client.use(ctx, { fetchImpl });
       }
     } else {
-      await client.unuse(ctx);
+      await client.unuse(ctx, { fetchImpl });
     }
   } catch (err) {
     ctx.step("Error", "failed", redact(err?.message ?? String(err), apiKey ? [apiKey] : []));
@@ -297,6 +317,7 @@ async function switchProvider(command, clientName, values, { base, deps, print, 
             ["Provider", report.provider ?? "–"],
             ["Model", report.model ?? "–"],
             ["Key", report.authIn ?? "–"],
+            ...(client.id === "codex" ? [["Tools", report.mcp ?? "not added"], ["Chats", report.chats ?? "not moved"]] : []),
             ["Backup", report.backup ?? "–"],
             ["Restart", report.restart ?? "–"],
             ["Undo", `npx -y @oceantoken/cli@latest unuse ${client.id}`],
@@ -304,6 +325,8 @@ async function switchProvider(command, clientName, values, { base, deps, print, 
           ]
         : [
             ["Agent", report.label],
+            ...(client.id === "codex" ? [["Chats", report.chats ?? "not moved"]] : []),
+            ...(report.backup ? [["Backup", report.backup]] : []),
             ["Restart", report.restart ?? "–"],
             ["Result", report.result],
           ];
