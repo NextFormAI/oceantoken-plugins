@@ -1,6 +1,6 @@
 # @oceantoken/cli
 
-Connect your AI agent to [OceanToken](https://oceantoken.ai), one account for 500+ AI models
+Connect your AI agent to [OceanToken](https://oceantoken.ai), one account for nearly 500 AI models
 (chat, image, video, speech, transcription), in one command.
 
 ```sh
