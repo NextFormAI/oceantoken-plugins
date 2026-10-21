@@ -14,7 +14,7 @@ export function tempHome() {
  * `bins` lists the host CLIs that "exist"; every call to them is recorded and
  * answered by `respond` (default: success).
  */
-export async function cli(argv, { home = tempHome(), bins = [], respond, models = 200, reachable = true, env = {}, promptKey } = {}) {
+export async function cli(argv, { home = tempHome(), bins = [], respond, models = 200, reachable = true, env = {}, promptKey, confirm, appEngines = [] } = {}) {
   const calls = [];
   const fetched = [];
   const out = [];
@@ -23,6 +23,9 @@ export async function cli(argv, { home = tempHome(), bins = [], respond, models 
     home,
     env: { PATH: "/nonexistent", ...env },
     ...(promptKey ? { promptKey } : {}),
+    ...(confirm ? { confirm } : {}),
+    // Never the desktop app installed on the machine running the tests.
+    appEngines,
     print: (l) => out.push(l),
     printErr: (l) => err.push(l),
     whichImpl: (cmd) => (bins.includes(cmd) ? `/fake/bin/${cmd}` : null),
@@ -36,6 +39,8 @@ export async function cli(argv, { home = tempHome(), bins = [], respond, models 
         if (!reachable) throw new Error("offline");
         return { ok: true, status: 200 };
       }
+      // `models` is a status code, or the model ids /v1/models lists (status 200).
+      if (Array.isArray(models)) return { ok: true, status: 200, json: async () => ({ data: models.map((id) => ({ id })) }) };
       return { ok: models === 200, status: models };
     },
   });

@@ -24,40 +24,81 @@ const TABLE_BEGIN = `# OceanToken provider table (${MARKER})`;
 const TABLE_END = "# end OceanToken provider table";
 const DISABLED = "# disabled by @oceantoken/cli: ";
 const TOP_KEYS = /^\s*(model_provider|model)\s*=/;
+const CATALOG_KEY = /^\s*model_catalog_json\s*=/;
 const TABLE_HEADER = /^\s*\[/;
 
 const tomlString = (s) => JSON.stringify(s);
 
-function cutBlock(lines, begin, end) {
+// The ChatGPT desktop app rewrites config.toml while it runs, and a comment that sits right
+// before a table belongs to that table for its TOML writer: the end markers below are lost
+// when the app rewrites the table that follows them (seen on a real config, 2026-10-20). So
+// a block whose end marker is gone still ends where the CLI's own lines end.
+
+/** Lines of the top block: our model_provider / model keys after the begin marker. */
+function topBlockEnd(lines, start) {
+  let i = start + 1;
+  const ours = { model_provider: false, model: false, model_catalog_json: false };
+  for (; i < lines.length; i++) {
+    const t = lines[i].trim();
+    if (t === TOP_END) return i;
+    const m = /^(model_provider|model_catalog_json|model)\s*=/.exec(t);
+    if (!m || ours[m[1]]) break;
+    ours[m[1]] = true;
+  }
+  return i - 1;
+}
+
+/** Lines of the table block: the [model_providers.oceantoken] table after the begin marker. */
+function tableBlockEnd(lines, start) {
+  let i = start + 1;
+  for (; i < lines.length; i++) {
+    const t = lines[i].trim();
+    if (t === TABLE_END) return i;
+    if (i > start + 1 && TABLE_HEADER.test(lines[i])) break;
+  }
+  let end = i - 1;
+  while (end > start && lines[end].trim() === "") end--;
+  return end;
+}
+
+function cutBlock(lines, begin, blockEnd) {
   const start = lines.findIndex((l) => l.trim() === begin);
   if (start < 0) return false;
-  const stop = lines.findIndex((l, i) => i > start && l.trim() === end);
-  if (stop < 0) return false;
-  lines.splice(start, stop - start + 1);
+  lines.splice(start, blockEnd(lines, start) - start + 1);
   return true;
 }
+
+// A parked `model_provider = "oceantoken"` can only be this CLI's own line that lost its
+// marker; bringing it back would point Codex at a provider `unuse` has removed.
+const OUR_PROVIDER_LINE = new RegExp(`^\\s*model_provider\\s*=\\s*"${PROVIDER_ID}"\\s*(#.*)?$`);
 
 const tidy = (lines) => `${lines.join("\n").replace(/\n{3,}/g, "\n\n").replace(/^\n+/, "").replace(/\s*$/, "")}\n`;
 
 /**
  * Point Codex at OceanToken. `auth` is { headers } to keep the key in the file, or
- * { envKey } to have Codex read it from an environment variable.
+ * { envKey } to have Codex read it from an environment variable. `catalog` is the path of
+ * a model list for Codex's picker (model_catalog_json), or nothing.
  * Returns { status: created | added | updated | unchanged | manual, text?, reason? }.
  */
-export function applyCodexProvider(text, { baseUrl, model, auth }) {
+export function applyCodexProvider(text, { baseUrl, model, auth, catalog }) {
   const lines = (text ?? "").split("\n");
-  cutBlock(lines, TOP_BEGIN, TOP_END);
-  cutBlock(lines, TABLE_BEGIN, TABLE_END);
+  cutBlock(lines, TOP_BEGIN, topBlockEnd);
+  cutBlock(lines, TABLE_BEGIN, tableBlockEnd);
   const handWritten = new RegExp(`^\\s*\\[model_providers\\.(${PROVIDER_ID}|"${PROVIDER_ID}")\\]`);
   if (lines.some((l) => handWritten.test(l))) {
     return { status: "manual", reason: `config.toml already has a hand-written [model_providers.${PROVIDER_ID}] table` };
   }
   let firstTable = lines.findIndex((l) => TABLE_HEADER.test(l));
   if (firstTable < 0) firstTable = lines.length;
-  for (let i = 0; i < firstTable; i++) {
-    if (TOP_KEYS.test(lines[i])) lines[i] = `${DISABLED}${lines[i]}`;
+  for (let i = firstTable - 1; i >= 0; i--) {
+    if (OUR_PROVIDER_LINE.test(lines[i])) lines.splice(i, 1);
+    else if (TOP_KEYS.test(lines[i]) || (catalog && CATALOG_KEY.test(lines[i]))) lines[i] = `${DISABLED}${lines[i]}`;
   }
-  const top = [TOP_BEGIN, `model_provider = ${tomlString(PROVIDER_ID)}`, `model = ${tomlString(model)}`, TOP_END, ""];
+  firstTable = lines.findIndex((l) => TABLE_HEADER.test(l));
+  if (firstTable < 0) firstTable = lines.length;
+  const top = [TOP_BEGIN, `model_provider = ${tomlString(PROVIDER_ID)}`, `model = ${tomlString(model)}`];
+  if (catalog) top.push(`model_catalog_json = ${tomlString(catalog)}`);
+  top.push(TOP_END, "");
   lines.splice(firstTable, 0, ...top);
 
   const table = [TABLE_BEGIN, `[model_providers.${PROVIDER_ID}]`, 'name = "OceanToken"', `base_url = ${tomlString(baseUrl)}`, 'wire_api = "responses"'];
@@ -77,14 +118,15 @@ export function applyCodexProvider(text, { baseUrl, model, auth }) {
 export function revertCodexProvider(text) {
   if (!text) return { status: "absent", text };
   const lines = text.split("\n");
-  const top = cutBlock(lines, TOP_BEGIN, TOP_END);
-  const table = cutBlock(lines, TABLE_BEGIN, TABLE_END);
+  const top = cutBlock(lines, TOP_BEGIN, topBlockEnd);
+  const table = cutBlock(lines, TABLE_BEGIN, tableBlockEnd);
   let restored = false;
-  for (let i = 0; i < lines.length; i++) {
-    if (lines[i].startsWith(DISABLED)) {
-      lines[i] = lines[i].slice(DISABLED.length);
-      restored = true;
-    }
+  for (let i = lines.length - 1; i >= 0; i--) {
+    if (!lines[i].startsWith(DISABLED)) continue;
+    const line = lines[i].slice(DISABLED.length);
+    if (OUR_PROVIDER_LINE.test(line)) lines.splice(i, 1);
+    else lines[i] = line;
+    restored = true;
   }
   if (!top && !table && !restored) return { status: "absent", text };
   return { status: "removed", text: tidy(lines) };
@@ -92,3 +134,18 @@ export function revertCodexProvider(text) {
 
 /** Whether config.toml currently routes Codex through OceanToken. */
 export const codexUsesOceanToken = (text) => Boolean(text?.includes(TOP_BEGIN));
+
+/**
+ * The API key an earlier `use codex` stored in its provider table, or null. A rerun of
+ * `use codex` (for instance to add the tools) then needs no key pasted again.
+ */
+export function codexProviderKey(text) {
+  const lines = (text ?? "").split("\n");
+  const start = lines.findIndex((l) => l.trim() === TABLE_BEGIN);
+  if (start < 0) return null;
+  for (const line of lines.slice(start, tableBlockEnd(lines, start) + 1)) {
+    const m = /^\s*http_headers\s*=.*"Authorization"\s*=\s*"Bearer (sk-[A-Za-z0-9_-]+)"/.exec(line);
+    if (m) return m[1];
+  }
+  return null;
+}

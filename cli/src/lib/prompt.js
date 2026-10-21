@@ -15,6 +15,17 @@ export function promptHidden(question, { input = process.stdin, output = process
   });
 }
 
+/** Ask a yes/no question on the terminal; anything but y / yes is no. */
+export function promptYesNo(question, { input = process.stdin, output = process.stdout } = {}) {
+  return new Promise((resolve) => {
+    const rl = readline.createInterface({ input, output, terminal: true });
+    rl.question(`${question} [y/N] `, (answer) => {
+      rl.close();
+      resolve(/^\s*y(es)?\s*$/i.test(answer));
+    });
+  });
+}
+
 /** Open a URL in the default browser; false when there is no way to. */
 export async function openUrl(url, runner, platform = process.platform) {
   const [cmd, args] =

@@ -156,8 +156,38 @@ test("use and unuse never put the key on a command line, whichever way it is giv
       assert.equal(res.code, 0, `${label}: ${res.out}${res.err}`);
       assertKeyNotInArgv(assert, res, label);
       assert.ok(!res.out.includes(KEY) && !res.err.includes(KEY), `${label} printed the key`);
-      if (!way.promptKey) assert.equal(res.calls.length, 0, `${label} runs nothing: it only edits files`);
+      // Nothing but read-only queries (Codex's own model list), never with the key.
+      if (!way.promptKey) {
+        const ran = res.calls.map((c) => c.args.join(" "));
+        assert.ok(ran.every((a) => a === "debug models --bundled"), `${label} ran ${ran.join("; ")}`);
+      }
       assertKeyNotInArgv(assert, await cli(["unuse", agent], { home, bins: ["codex", "claude"] }), `unuse ${agent}`);
     }
   }
+});
+
+test("codex: the ChatGPT app rewrote config.toml and lost the end markers; unuse still restores it", () => {
+  // The shape of a real config after the app rewrote it (2026-10-20): the comment that ended
+  // the top block sat before a table the app rewrote, so it is gone.
+  const on = applyCodexProvider(USER_TOML, { baseUrl: `${BASE}/v1`, model: "openai/gpt-5.5", auth: { headers: { Authorization: "Bearer k" } } }).text;
+  const rewritten = on
+    .replace("# end OceanToken model provider\n", "")
+    .replace("# end OceanToken provider table\n", "")
+    .concat('\n[desktop]\nlocaleOverride = "en-US"\n');
+  const off = revertCodexProvider(rewritten);
+  assert.equal(off.status, "removed");
+  assert.equal(off.text, `${USER_TOML}\n[desktop]\nlocaleOverride = "en-US"\n`);
+  assert.doesNotMatch(off.text, /oceantoken/, "no provider line left pointing at a removed table");
+
+  // Rerunning use on it replaces the block instead of parking our own line as the user's.
+  const again = applyCodexProvider(rewritten, { baseUrl: `${BASE}/v1`, model: "openai/gpt-5.5", auth: { envKey: "K" } });
+  assert.equal(again.status, "updated");
+  assert.equal((again.text.match(/^model_provider = /gm) || []).length, 1);
+  assert.equal((again.text.match(/^\[model_providers\.oceantoken\]/gm) || []).length, 1);
+  assert.doesNotMatch(again.text, /disabled by @oceantoken\/cli: model_provider/);
+  assert.equal(revertCodexProvider(again.text).text, `${USER_TOML}\n[desktop]\nlocaleOverride = "en-US"\n`);
+
+  // A marker-less leftover `model_provider = "oceantoken"` is never brought back.
+  const parked = '# disabled by @oceantoken/cli: model_provider = "oceantoken"\nmodel = "x"\n';
+  assert.equal(revertCodexProvider(parked).text, 'model = "x"\n');
 });

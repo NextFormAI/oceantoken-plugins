@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 import { MARKER, SKILL_NAMES } from "../constants.js";
 import { copyDir, exists, readIfExists, removeDir } from "./fsutil.js";
 
-const OWNER_FILE = ".oceantoken-cli";
+export const OWNER_FILE = ".oceantoken-cli";
 
 /** The skills shipped in the package (synced from plugins/oceantoken/skills when packed). */
 export function bundledSkillsDir() {
@@ -39,10 +39,10 @@ export function installSkills(targetDir, { dryRun = false } = {}) {
   return { installed, skipped };
 }
 
-/** Remove the skills this CLI installed from a host's skills directory. */
-export function removeSkills(targetDir, { dryRun = false } = {}) {
+/** Remove the skills this CLI installed from a host's skills directory (only `names`, when given). */
+export function removeSkills(targetDir, { dryRun = false, names = SKILL_NAMES } = {}) {
   const removed = [];
-  for (const name of SKILL_NAMES) {
+  for (const name of SKILL_NAMES.filter((n) => names.includes(n))) {
     const dst = path.join(targetDir, name);
     if (readIfExists(path.join(dst, OWNER_FILE)) === null) continue;
     if (!dryRun) removeDir(dst);

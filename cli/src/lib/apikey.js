@@ -47,6 +47,34 @@ export function apiBaseFor(mcpUrl) {
   return `${u.protocol}//api.${u.host.slice("mcp.".length)}`;
 }
 
+/** The tools that go with an OceanToken API: api.<domain> -> https://mcp.<domain>/mcp, else null. */
+export function mcpUrlFor(apiBase) {
+  let u;
+  try {
+    u = new URL(apiBase);
+  } catch {
+    return null;
+  }
+  if (!/^https?:$/.test(u.protocol) || !u.hostname.startsWith("api.")) return null;
+  return `${u.protocol}//mcp.${u.host.slice("api.".length)}/mcp`;
+}
+
+/** The model ids the key can use, or null when they cannot be read. */
+export async function listModels(key, { apiBase = API_BASE, fetchImpl = globalThis.fetch } = {}) {
+  try {
+    const res = await fetchImpl(`${apiBase}/v1/models`, {
+      headers: { Authorization: `Bearer ${key}` },
+      signal: AbortSignal.timeout(15000),
+    });
+    if (!res.ok || typeof res.json !== "function") return null;
+    const body = await res.json();
+    const ids = Array.isArray(body?.data) ? body.data.map((m) => m?.id).filter((id) => typeof id === "string") : [];
+    return ids.length ? new Set(ids) : null;
+  } catch {
+    return null;
+  }
+}
+
 /** valid | rejected | unverified (network trouble is not a verdict on the key). */
 export async function verifyApiKey(key, { apiBase = API_BASE, fetchImpl = globalThis.fetch } = {}) {
   try {
