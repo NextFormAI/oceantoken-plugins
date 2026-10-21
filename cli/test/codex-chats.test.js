@@ -14,7 +14,10 @@ import {
 } from "../src/lib/codex-chats.js";
 import { which } from "../src/lib/run.js";
 import { fromCommand, openDatabase, sqlValue } from "../src/lib/sqlite.js";
-import { KEY, cli, exists, read, readJson, tempHome } from "./helpers.js";
+import { KEY, cli as runCli, exists, read, readJson, tempHome } from "./helpers.js";
+
+// The chat list is read with node:sqlite or the real sqlite3 command, found on the real PATH.
+const cli = (argv, opts = {}) => runCli(argv, { ...opts, env: { PATH: process.env.PATH, ...(opts.env ?? {}) } });
 
 // --move-chats: Codex reopens a chat with the provider and model stored for it in
 // state_<n>.sqlite, so that is what moves; moving back also blanks the hidden reasoning
